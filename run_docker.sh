@@ -14,14 +14,15 @@ setup_audio() {
         pulseaudio -v --start
     fi
 
-    # if $(pactl list modules short | grep socket=/tmp/pulseaudio.socket); then
-    #     echo Found Socket
-    # else
-    #     echo Loading Pulse Audio Module...
-    #     sudo rm -fd /tmp/pulseaudio.socket
-    #     PA_PID=$(pactl load-module module-native-protocol-unix socket=/tmp/pulseaudio.socket)
-    #     cp -f pulseaudio.client.conf /tmp
-    # fi   
+    if $(pactl list modules short | grep socket=/tmp/pulseaudio.socket); then
+        echo Found Socket
+    else
+        echo Loading Pulse Audio Module...
+        sudo rm -fd /tmp/pulseaudio.client.conf
+        sudo rm -fd /tmp/pulseaudio.socket
+        PA_PID=$(pactl load-module module-native-protocol-unix socket=/tmp/pulseaudio.socket)
+        cp -f pulseaudio.client.conf /tmp
+    fi   
 }
 
 build() {
@@ -34,7 +35,6 @@ dev() {
         --env PULSE_SERVER=unix:/tmp/pulseaudio.socket \
         --env PULSE_COOKIE=/tmp/pulseaudio.cookie \
         -v /tmp/pulseaudio.socket:/tmp/pulseaudio.socket \
-        -v /tmp/pulseaudio.client.conf:/etc/pulse/client.conf \
         -v $PWD/share:/home/oumuamua/share \
         -v $HOME/.local/share/tts:/home/oumuamua/.local/share/tts \
         -v $HOME/.cache/whisper:/home/oumuamua/.cache/whisper \
@@ -49,7 +49,7 @@ speaker_test() {
         --env PULSE_SERVER=unix:/tmp/pulseaudio.socket \
         --env PULSE_COOKIE=/tmp/pulseaudio.cookie \
         --volume /tmp/pulseaudio.socket:/tmp/pulseaudio.socket \
-        --volume /tmp/pulseaudio.client.conf:/etc/pulse/client.conf \
+        --volume $PWD/pulseaudio.client.conf:/etc/pulse/client.conf \
         -v $PWD/share:/home/oumuamua/share \
         --user $(id -u):$(id -g) \
         -it "oumuamua" -c 2 -l 1 -t wav
@@ -62,7 +62,6 @@ whisper_test() {
         --env PULSE_SERVER=unix:/tmp/pulseaudio.socket \
         --env PULSE_COOKIE=/tmp/pulseaudio.cookie \
         --volume /tmp/pulseaudio.socket:/tmp/pulseaudio.socket \
-        --volume /tmp/pulseaudio.client.conf:/etc/pulse/client.conf \
         -v $PWD/share:/home/oumuamua/share \
         --user $(id -u):$(id -g) \
         -it "oumuamua" --loop --dictate
@@ -75,7 +74,7 @@ run() {
         --env PULSE_SERVER=unix:/tmp/pulseaudio.socket \
         --env PULSE_COOKIE=/tmp/pulseaudio.cookie \
         --volume /tmp/pulseaudio.socket:/tmp/pulseaudio.socket \
-        --volume /tmp/pulseaudio.client.conf:/etc/pulse/client.conf \
+        --volume $PWD/pulseaudio.client.conf:/etc/pulse/client.conf \
         -v $PWD/share:/home/oumuamua/share \
         -v $HOME/.local/share/tts:/home/oumuamua/.local/share/tts \
         -v $HOME/.cache/whisper:/home/oumuamua/.cache/whisper \

@@ -9,7 +9,7 @@ RUN apt-get install -y --no-install-recommends \
 
 
 RUN --mount=type=cache,target=/root/.cache \
-    pip3 install pyaudio TTS openai-whisper SpeechRecognition 
+    pip3 install pyaudio TTS openai-whisper SpeechRecognition openai
 
 # RUN rm -rf /root/.cache/pip
 
@@ -23,7 +23,11 @@ RUN mkdir -p /home/oumuamua/.cache/whisper/
 RUN mkdir -p /home/oumuamua/share
 # COPY . /root
 
+COPY pulseaudio.client.conf /etc/pulse/client.conf
+COPY alsa.conf /usr/share/alsa/alsa.conf
+
 COPY entrypoint.py /home/oumuamua
+COPY openai.key    /home/oumuamua
 
 CMD ["entrypoint.py"]
 ENTRYPOINT ["python3"]
