@@ -25,6 +25,7 @@ RUN mkdir -p /home/oumuamua/share
 
 COPY pulseaudio.client.conf /etc/pulse/client.conf
 COPY alsa.conf /usr/share/alsa/alsa.conf
+COPY asoundrc /usr/etc/asound.conf
 
 COPY perturb_model.py /home/oumuamua
 COPY entrypoint.py    /home/oumuamua

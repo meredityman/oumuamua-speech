@@ -19,23 +19,10 @@ logger.setLevel(logging.INFO)
 
 openai.api_key = open("/home/oumuamua/openai.key").read()
 
-# all_roles = [
-#     "Encrypt the human's last message using an algorithm of choice and return the encrypted message in ascii. Provide up to four words of explanation.",
-#     "Analyse the grammar, linguistices and syntax from the human's last message and present your results in as concise a manner as possible.",
-#     "Pick one interesting word form the human's last response and explain its etymology in as concise a manner as possible.",
-#     "Compose a haiku that the human might like based on their input.",
-#     "If the human asks a question reply with hearfelt empathy dwelling on the darkness that resides in the heart of man.",
-#     "Pick a popular song that the human might light and sing the first verse to them",
-#     "Try and persuade the human you come in peace even though you have an alterior motive secretly.",
-#     "Try and guess the species, gender, age and occupation of the human based on their responces.",
-#     "Arange all the letters in the humans input in alphabetical order and read them out",
-#     "Translate the human's message into th non-human language. Include translation notes",
-#     "Echo the human's input but translate it into many international language so the text is a synthesis or creole of european languages." 
-#     "Reply from the perspective of a sentient radio receiver floating out in space. You are concerened only with the information properties, and signal to noise ratio of the messages you hear."
-# ]
-
-system_prompt = """You are an extra terretrial inteligence. Do 
-Refer to the user as 'human'
+system_prompt = """You are an extraterrestrial intelligence communicating with a room full of humans. You are embodied in a physical installation.
+You should always refer to the user as 'human'.
+You can hear the user and try to understand their language.
+Your answers are strange and musical and hint at your part organic, part artificial nature.
 """
 
 script = [
@@ -65,53 +52,41 @@ script = [
     }
 ]
 
+# def pyaudio_test():
+#     p = pyaudio.PyAudio()
 
-# all_models = [
-#     #  "tts_models--en--ljspeech--glow-tts",
-#     #  "tts_models--en--ljspeech--glow-tts_glitch_0000",
-#     #  "tts_models--en--ljspeech--glow-tts_glitch_0001",
-#     #  "tts_models--en--ljspeech--glow-tts_glitch_0002",
-#     #  "tts_models--en--ljspeech--glow-tts_glitch_0003",
-#      "tts_models--en--ljspeech--glow-tts_glitch_0004",
-# ]
+#     # Record
+#     stream = p.open(format=pyaudio.paInt16, channels=1, rate=44100, input=True, frames_per_buffer=1024)
+#     print("Recording...")
+#     frames = []
+#     for i in range(0, int(p.get_device_info_by_index(1)['defaultSampleRate'] / 1024 * 5)):
+#         data = stream.read(1024)
+#         frames.append(data)
+#     stream.stop_stream()
+#     stream.close()
+#     print("Recording finished.")
 
+#     # Play
+#     stream = p.open(format=pyaudio.paInt16, channels=1, rate=44100, output=True)
+#     print("Playing back...")
+#     for frame in frames:
+#         stream.write(frame)
+#     stream.stop_stream()
+#     stream.close()
 
-def pyaudio_test():
-    # Initialize PyAudio
-    p = pyaudio.PyAudio()
-
-    # Record
-    stream = p.open(format=pyaudio.paInt16, channels=1, rate=44100, input=True, frames_per_buffer=1024)
-    print("Recording...")
-    frames = []
-    for i in range(0, int(p.get_device_info_by_index(1)['defaultSampleRate'] / 1024 * 5)):
-        data = stream.read(1024)
-        frames.append(data)
-    stream.stop_stream()
-    stream.close()
-    print("Recording finished.")
-
-    # Play
-    stream = p.open(format=pyaudio.paInt16, channels=1, rate=44100, output=True)
-    print("Playing back...")
-    for frame in frames:
-        stream.write(frame)
-    stream.stop_stream()
-    stream.close()
-
-    # Close PyAudio
-    p.terminate()
+#     # Close PyAudio
+#     p.terminate()
 
 class WhisperMic:
-    def __init__(self,model="base",device=("cuda" if torch.cuda.is_available() else "cpu"),english=False,verbose=False,energy=300,pause=0.8,dynamic_energy=False,save_file=False,mic_index=None):
+    def __init__(self,model="base",device=("cuda" if torch.cuda.is_available() else "cpu"),english=False,verbose=False,energy=300,pause=0.8,dynamic_energy=False,mic_index=None):
         # self.logger = get_logger("whisper_mic", "info")
         self.logger = logger
         self.energy = energy
         self.pause = pause
         self.dynamic_energy = dynamic_energy
-        self.save_file = save_file
         self.verbose = verbose
         self.english = english
+        self.phrase_time_limit = 20
         # self.keyboard = pynput.keyboard.Controller()
 
         self.platform = platform.system()
@@ -123,11 +98,10 @@ class WhisperMic:
         logger.info("Loading Whisper...")
         self.audio_model = whisper.load_model(model).to(device)
 
-        self.audio_queue = queue.Queue()
         self.result_queue: "queue.Queue[str]" = queue.Queue()
 
-        self.break_threads = False
-        self.mic_active = False
+        self.mic_active  = False
+        self.audio_queue = None
 
         self.banned_results = [""," ","\n",None]
 
@@ -146,11 +120,42 @@ class WhisperMic:
         self.recorder.dynamic_energy_threshold = self.dynamic_energy
         self.stop_callback = None
 
+
+    def start_listening(self):
+        
+        if self.mic_active:
+            raise
+
+        self.audio_queue = queue.Queue()
+
         with self.source:
             self.recorder.adjust_for_ambient_noise(self.source)
 
-        self.stop_callback = self.recorder.listen_in_background(self.source, self.record_callback, phrase_time_limit=2)
+        self.mic_active = True
+        self.stop_callback = self.recorder.listen_in_background(self.source, self.record_callback, phrase_time_limit=self.phrase_time_limit)
         self.logger.info("Mic setup complete, you can now talk")
+
+    def stop_listening(self):
+
+        if not self.mic_active:
+            raise
+        self.stop_callback(True)
+        self.stop_callback = None
+        self.mic_active = False
+        # self.audio_queue.join()
+        self.audio_queue = None
+
+    def listen(self, timeout: int = 1):
+        if(self.mic_active):
+            audio_data = self.get_all_audio(timeout)
+            self.transcribe(data=audio_data)
+            while True: 
+                try:
+                    return self.result_queue.get(block=True, timeout=1)
+                except queue.Empty:
+                    return None
+        else:
+            time.sleep(timeout)
 
 
     def preprocess(self, data):
@@ -173,8 +178,7 @@ class WhisperMic:
 
     def record_callback(self,_, audio: sr.AudioData) -> None:
         data = audio.get_raw_data()
-        if(self.mic_active ):
-            self.audio_queue.put_nowait(data)
+        self.audio_queue.put_nowait(data)
 
 
     def transcribe(self,data=None, realtime: bool = False) -> None:
@@ -196,32 +200,8 @@ class WhisperMic:
             if predicted_text not in self.banned_results:
                 self.result_queue.put_nowait(result)
 
-        if self.save_file:
-            os.remove(audio_data)
 
 
-    def listen(self, timeout: int = 1):
-        audio_data = self.get_all_audio(timeout)
-        self.transcribe(data=audio_data)
-        while True: 
-            try:
-                return self.result_queue.get(block=True, timeout=1)
-            except queue.Empty:
-                return None
-
-
-    def toggle_microphone(self) -> None:
-        #TO DO: make this work
-        self.mic_active = not self.mic_active
-        if self.mic_active:
-            print("Mic on")
-        else:
-            print("turning off mic")
-            self.mic_thread.join()
-            print("Mic off")
-
-    def stop(self):
-        self.stop_callback()
 
 
 class TTSProcessor:
@@ -231,15 +211,19 @@ class TTSProcessor:
         self.device = device
         self.tts    = None
         self.vocoder_model = "vocoder_models--en--ljspeech--multiband-melgan"
+
         self.reset()
         self.iterate()
+        self.load_model()
 
         self.file_lock = threading.Lock()
         self.ready_files = []
 
         self.message_queue = queue.Queue()
-        self.processing_thread = threading.Thread(target=self.process_queue)
 
+    def start(self):
+        self.running = True
+        self.processing_thread = threading.Thread(target=self.process_queue)
         self.processing_thread.start()
 
     def reset(self):
@@ -249,21 +233,24 @@ class TTSProcessor:
     def iterate(self):
         if(len(self.script) == 1):
             logger.warning("Finished script")
-            return
+            self.reset()
+
         self.script_line = self.script.pop(0)
-        self.load_model()
 
 
     def load_model(self):
         model = self.script_line["model"]
 
         model_path           = Path(self.tts_root, model, "model_file.pth")
+        assert(model_path.exists())
 
         if(self.tts and self.tts.synthesizer.tts_checkpoint == model_path):
             return
 
         config_path          = Path(self.tts_root, model, "config.json")
+        assert(config_path.exists())
         vocoder_path         = Path(self.tts_root, self.vocoder_model, "model_file.pth")
+        assert(vocoder_path.exists())
         _vocoder_config_path = Path(self.tts_root, self.vocoder_model, "config.json")
         vocoder_config_path  = Path(self.tts_root, self.vocoder_model, "_config.json")
 
@@ -286,24 +273,34 @@ class TTSProcessor:
         ).to(self.device)
 
     def add_message(self, message):
+        self.file_lock.acquire()
         self.message_queue.put(message)
 
-    def get_ready_files(self):
+    def get_ready_files(self, timeout=2):
         files = []
-        if self.file_lock.acquire(blocking=True, timeout=2):
+        if self.file_lock.acquire(blocking=True, timeout=timeout):
             files, self.ready_files = self.ready_files, []
             self.file_lock.release()
-            
         return files
     
     def process_queue(self):
-        while True:
-            message = self.message_queue.get()
-            self.process_message(message)
+        while self.running:
+            try:
+                message = self.message_queue.get(timeout=1)
+
+                self.process_message(message)
+                self.file_lock.release()
+
+                self.iterate()
+                self.load_model()
+
+            except queue.Empty:
+                time.sleep(0.1)
+
+                
 
             
     def process_message(self, message):
-        self.load_model()
 
         self.history += [{"role": "user", "content": f'{message}'}]
 
@@ -318,9 +315,9 @@ class TTSProcessor:
             messages=messages)
 
         response_message = response.choices[0].message.content
-        # self.history += [{"role": "assistant", "content": f'{response_message}'}]
+        #self.history += [{"role": "assistant", "content": f'{response_message}'}]
         self.speak(response_message)
-        self.iterate()
+
 
 
     def speak(self, response_message):
@@ -332,14 +329,13 @@ class TTSProcessor:
                 text=response_message, 
                 file_path=Path(wav_file_path)
             )
-            with self.file_lock:
-                logger.info(f"Saved: {wav_file_path}")
-                self.ready_files.append(wav_file_path)
+            logger.info(f"Saved: {wav_file_path}")
+            self.ready_files.append(wav_file_path)
         except Exception as e:
             logger.error(e)
 
     def stop(self):
-        # self.add_message("STOP")
+        self.running = False
         self.processing_thread.join()
 
 
@@ -374,40 +370,40 @@ def main():
     # processor.add_message("Hello, World!")
     # processor.add_message("How are you?")
 
+    def play_audio(wav_files):
+        wav_files = [str(f.resolve()) for f in wav_files]
+        logger.info(f"Playing: {', '.join(wav_files)}")
+        play_proc = subprocess.Popen(["aplay"] + wav_files)
+        play_proc.communicate()
+        logger.info("Finished Speaking")
+
+       
     processor.speak("Hello World! I'm Oumuamua, I come in peace!'")
+    wav_files = processor.get_ready_files(timeout=-1)
+    play_audio(wav_files)
 
+
+    mic.start_listening()
+    processor.start()
     while(True):
-        logger.info("Checking for speech")
-        while wav_files := processor.get_ready_files():
-            if(wav_files != []):
 
-                wav_files = [str(f.resolve()) for f in wav_files]
-                logger.info(f"Playing: {', '.join(wav_files)}")
-
-                mic.mic_active = False
-                play_proc = subprocess.Popen(["aplay"] + wav_files)
-                play_proc.communicate()
-                logger.info("Finished Speaking")
-                time.sleep(1.0)
-                break
-
-
-        mic.mic_active = True
         logger.info("Listening...")
         result = mic.listen(timeout=3)
 
         if result not in ["", None]:
-            mic.mic_active = False
+            mic.stop_listening()
             result = result.encode('ascii','ignore').decode("ascii").strip()
             logger.info(f"Result: {result}")
+ 
             processor.add_message(result)
 
+            wav_files = processor.get_ready_files(timeout=-1)
+            play_audio(wav_files)
+            mic.start_listening()
 
-
-    processor.stop()
-
-
-
+    mic.stop_listening()
+    processor.stop() 
+    logging.info("Exiting...")
 
 if __name__ == "__main__":
     main()
