@@ -5,6 +5,14 @@ export DOCKER_BUILDKIT=1
 set -eu
 
 
+load_audio(){
+    echo Loading Pulse Audio Module...
+    sudo rm -fd /tmp/pulseaudio.client.conf
+    sudo rm -fd /tmp/pulseaudio.socket
+    PA_PID=$(pactl load-module module-native-protocol-unix socket=/tmp/pulseaudio.socket)
+    cp -f pulseaudio.client.conf /tmp
+}
+
 setup_audio() {
     SUCCESS=$(pactl info 2>&1 &)
     # echo pactl returned: $SUCCESS
@@ -14,20 +22,28 @@ setup_audio() {
         pulseaudio -v --start
     fi
 
-    if $(pactl list modules short | grep socket=/tmp/pulseaudio.socket); then
+    MODULES=$(pactl list modules short | grep socket=/tmp/pulseaudio.socket | wc -l)
+    if [ $MODULES -eq 1 ]; then
         echo Found Socket
+    elif [ $MODULES -gt 1 ]; then
+        pactl unload-module module-native-protocol-unix
+        load_audio
     else
-        echo Loading Pulse Audio Module...
-        sudo rm -fd /tmp/pulseaudio.client.conf
-        sudo rm -fd /tmp/pulseaudio.socket
-        PA_PID=$(pactl load-module module-native-protocol-unix socket=/tmp/pulseaudio.socket)
-        cp -f pulseaudio.client.conf /tmp
+        load_audio
     fi   
 }
 
 build() {
     docker build  --rm . --tag "oumuamua"
 }
+
+perturb() {
+    docker run --rm --gpus=all --entrypoint=python3 \
+        -v $PWD/share:/home/oumuamua/share \
+        -v $HOME/.local/share/tts:/home/oumuamua/.local/share/tts \
+        -it "oumuamua" perturb_model.py
+}
+
 
 dev() {
     setup_audio
@@ -56,15 +72,15 @@ speaker_test() {
 }
 
 whisper_test() {
-#     arecord -D pulse -f cd -t wav -d 5 -r 44100 -c 1 test.wav && aplay test.wav
+#     
     setup_audio
-    docker run --rm --gpus=all --entrypoint=whisper_mic \
+    docker run --rm --gpus=all --entrypoint=/bin/bash \
         --env PULSE_SERVER=unix:/tmp/pulseaudio.socket \
         --env PULSE_COOKIE=/tmp/pulseaudio.cookie \
         --volume /tmp/pulseaudio.socket:/tmp/pulseaudio.socket \
         -v $PWD/share:/home/oumuamua/share \
         --user $(id -u):$(id -g) \
-        -it "oumuamua" --loop --dictate
+        -it "oumuamua" -i "arecord -D pulse -f cd -t wav -d 5 -r 44100 -c 1 test.wav && aplay test.wav"
 }
 
 run() {
@@ -87,6 +103,7 @@ CWD=$(basename "$PWD")
 case ${1:-build} in
     build) build ;;
     dev) dev ;;
+    perturb) perturb ;;
     speaker_test) speaker_test ;;
     whisper_test) whisper_test ;;
     run) run ;;

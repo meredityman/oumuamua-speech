@@ -2,3 +2,5 @@ openai.key
 
 img.tar
 share/*
+
+models/*

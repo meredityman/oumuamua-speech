@@ -10,20 +10,70 @@ import speech_recognition as sr
 from TTS.api import TTS
 import openai
 import whisper
-
+from random import shuffle
 
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-@contextmanager
-def noalsaerr():
-    sys.stderr = open(os.devnull, 'w')
-    sys.stdout = open(os.devnull, 'w')
-    yield
-    sys.stderr = sys.__stderr__  # Restore stderr
-    sys.stdout = sys.__stdout__  # Restore stderr
 
+openai.api_key = open("/home/oumuamua/openai.key").read()
+
+# all_roles = [
+#     "Encrypt the human's last message using an algorithm of choice and return the encrypted message in ascii. Provide up to four words of explanation.",
+#     "Analyse the grammar, linguistices and syntax from the human's last message and present your results in as concise a manner as possible.",
+#     "Pick one interesting word form the human's last response and explain its etymology in as concise a manner as possible.",
+#     "Compose a haiku that the human might like based on their input.",
+#     "If the human asks a question reply with hearfelt empathy dwelling on the darkness that resides in the heart of man.",
+#     "Pick a popular song that the human might light and sing the first verse to them",
+#     "Try and persuade the human you come in peace even though you have an alterior motive secretly.",
+#     "Try and guess the species, gender, age and occupation of the human based on their responces.",
+#     "Arange all the letters in the humans input in alphabetical order and read them out",
+#     "Translate the human's message into th non-human language. Include translation notes",
+#     "Echo the human's input but translate it into many international language so the text is a synthesis or creole of european languages." 
+#     "Reply from the perspective of a sentient radio receiver floating out in space. You are concerened only with the information properties, and signal to noise ratio of the messages you hear."
+# ]
+
+system_prompt = """You are an extra terretrial inteligence. Do 
+Refer to the user as 'human'
+"""
+
+script = [
+    {
+        "prompt" : "Answer the user with another question relating to their question.",
+        "model"  : "tts_models--en--ljspeech--glow-tts"
+    },
+    {
+        "prompt" : "Answer the user with a short poem in hexameter in four lines or less.",
+        "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0000"
+    },
+    {
+        "prompt" : "Answer the user with a longer poem in hexameter in six lines or less.",
+        "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0001"
+    },
+    {
+        "prompt" : "Answer the user with a longer poem in hexameter in eight lines or less.",
+        "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0002"
+    },
+    {
+        "prompt" : "Answer the user with a longer poem in hexameter in ten lines or less.",
+        "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0003"
+    },
+    {
+        "prompt" : "Answer the user with a longer poem in hexameter in twelve lines or less.",
+        "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0004"
+    }
+]
+
+
+# all_models = [
+#     #  "tts_models--en--ljspeech--glow-tts",
+#     #  "tts_models--en--ljspeech--glow-tts_glitch_0000",
+#     #  "tts_models--en--ljspeech--glow-tts_glitch_0001",
+#     #  "tts_models--en--ljspeech--glow-tts_glitch_0002",
+#     #  "tts_models--en--ljspeech--glow-tts_glitch_0003",
+#      "tts_models--en--ljspeech--glow-tts_glitch_0004",
+# ]
 
 
 def pyaudio_test():
@@ -69,6 +119,8 @@ class WhisperMic:
         if (model != "large" and model != "large-v2") and self.english:
             model = model + ".en"
         
+
+        logger.info("Loading Whisper...")
         self.audio_model = whisper.load_model(model).to(device)
 
         self.audio_queue = queue.Queue()
@@ -79,6 +131,7 @@ class WhisperMic:
 
         self.banned_results = [""," ","\n",None]
 
+        logger.info("Setting up Mic...")
         self.setup_mic(mic_index)
 
 
@@ -147,12 +200,12 @@ class WhisperMic:
             os.remove(audio_data)
 
 
-    def listen(self, timeout: int = 3):
+    def listen(self, timeout: int = 1):
         audio_data = self.get_all_audio(timeout)
         self.transcribe(data=audio_data)
         while True: 
             try:
-                return self.result_queue.get(block=True, timeout=3)
+                return self.result_queue.get(block=True, timeout=1)
             except queue.Empty:
                 return None
 
@@ -171,42 +224,51 @@ class WhisperMic:
         self.stop_callback()
 
 
-# def test_tts(share_path, device):
-#    # List available 🐸TTS models and choose the first one
-#     model_name = TTS().list_models()[0]
-#     tts_root = Path("/home/oumuamua/.local/share/tts")
-#     # Init TTS
-#     tts = TTS(
-#         model_path           = Path(tts_root, "tts_models--en--ljspeech--glow-tts"),
-#         config_path          = Path(tts_root, "tts_models--en--ljspeech--glow-tts", "config.json"),
-#         vocoder_path         = Path(tts_root, "vocoder_models--de--thorsten--fullband-melgan"),
-#         vocoder_config_path   = Path(tts_root, "vocoder_models--de--thorsten--fullband-melgan", "config.json")
-#     ).to(device)
-
-#     # Run TTS
-#     # ❗ Since this model is multi-speaker and multi-lingual, we must set the target speaker and the language
-#     # Text to speech with a numpy output
-#     wav = tts.tts("This is a test! This is also a test!!", speaker=tts.speakers[0], language=tts.languages[0])
-#     # Text to speech to a file
-#     tts.tts_to_file(
-#         text="Hello world!", 
-#         file_path=Path(share_path, "output.wav")
-#     )
-
-
-
 class TTSProcessor:
     def __init__(self, tts_root = "/home/oumuamua/.local/share/tts", cache_path = "/tmp", device = "cuda"):
         self.tts_root = Path(tts_root)
-        openai.api_key = open("/home/oumuamua/openai.key").read()
-
         self.cache_path = cache_path
+        self.device = device
+        self.tts    = None
+        self.vocoder_model = "vocoder_models--en--ljspeech--multiband-melgan"
+        self.reset()
+        self.iterate()
 
-        model_path           = Path(self.tts_root, "tts_models--en--ljspeech--glow-tts", "model_file.pth")
-        config_path          = Path(self.tts_root, "tts_models--en--ljspeech--glow-tts", "config.json")
-        vocoder_path         = Path(self.tts_root, "vocoder_models--en--ljspeech--multiband-melgan", "model_file.pth")
-        _vocoder_config_path = Path(self.tts_root, "vocoder_models--en--ljspeech--multiband-melgan", "config.json")
-        vocoder_config_path  = Path(self.tts_root, "vocoder_models--en--ljspeech--multiband-melgan", "_config.json")
+        self.file_lock = threading.Lock()
+        self.ready_files = []
+
+        self.message_queue = queue.Queue()
+        self.processing_thread = threading.Thread(target=self.process_queue)
+
+        self.processing_thread.start()
+
+    def reset(self):
+        self.history = []
+        self.script  = script.copy()
+
+    def iterate(self):
+        if(len(self.script) == 1):
+            logger.warning("Finished script")
+            return
+        self.script_line = self.script.pop(0)
+        self.load_model()
+
+
+    def load_model(self):
+        model = self.script_line["model"]
+
+        model_path           = Path(self.tts_root, model, "model_file.pth")
+
+        if(self.tts and self.tts.synthesizer.tts_checkpoint == model_path):
+            return
+
+        config_path          = Path(self.tts_root, model, "config.json")
+        vocoder_path         = Path(self.tts_root, self.vocoder_model, "model_file.pth")
+        _vocoder_config_path = Path(self.tts_root, self.vocoder_model, "config.json")
+        vocoder_config_path  = Path(self.tts_root, self.vocoder_model, "_config.json")
+
+
+        logger.info(f"Loading model {model}")
 
         with open(_vocoder_config_path, 'r') as file:
             data = file.read()
@@ -221,17 +283,7 @@ class TTSProcessor:
             config_path           = config_path        ,
             vocoder_path          = vocoder_path       ,
             vocoder_config_path   = vocoder_config_path
-        ).to(device)
-
-        self.file_lock = threading.Lock()
-        self.ready_files = []
-
-        self.message_queue = queue.Queue()
-        self.processing_thread = threading.Thread(target=self.process_queue)
-
-        self.process_message("Hello World")
-
-        self.processing_thread.start()
+        ).to(self.device)
 
     def add_message(self, message):
         self.message_queue.put(message)
@@ -248,26 +300,43 @@ class TTSProcessor:
         while True:
             message = self.message_queue.get()
             self.process_message(message)
+
             
     def process_message(self, message):
+        self.load_model()
+
+        self.history += [{"role": "user", "content": f'{message}'}]
+
+        prompt = self.script_line["prompt"]
+
+        messages = [{"role": "system", "content": system_prompt}]
+        messages += [ m for m in self.history]
+        messages += [ {"role": "system", "content": f'{prompt}'}]
+
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
-            messages=[ {"role": "system", "content": 'You a alien talking on the radio to humanity. You can use 20 words or less.'},
-                        {"role": "user", "content": f'{message}'}
-            ])
+            messages=messages)
 
         response_message = response.choices[0].message.content
+        # self.history += [{"role": "assistant", "content": f'{response_message}'}]
+        self.speak(response_message)
+        self.iterate()
 
+
+    def speak(self, response_message):
         wav_uuid = uuid.uuid4()
         wav_file_path = Path(self.cache_path, f"{wav_uuid}.wav")
         logger.info(f"Processing message: '{response_message}' -> {wav_file_path}")
-        self.tts.tts_to_file(
-            text=response_message, 
-            file_path=Path(wav_file_path)
-        )
-        with self.file_lock:
-            logger.info(f"Saved: {wav_file_path}")
-            self.ready_files.append(wav_file_path)
+        try:
+            self.tts.tts_to_file(
+                text=response_message, 
+                file_path=Path(wav_file_path)
+            )
+            with self.file_lock:
+                logger.info(f"Saved: {wav_file_path}")
+                self.ready_files.append(wav_file_path)
+        except Exception as e:
+            logger.error(e)
 
     def stop(self):
         # self.add_message("STOP")
@@ -277,8 +346,8 @@ class TTSProcessor:
 
 
 def main():
-    logger.info(f"Entering {__name__}...")
-    logger.info(subprocess.call("nvidia-smi"))
+    logger.info(f"Entering Main...")
+    # logger.info(subprocess.call("nvidia-smi"))
     # logging.info(subprocess.call("pactl info"))
 
     share_path = Path("share")
@@ -291,40 +360,49 @@ def main():
 
 
 
-    with noalsaerr():
-        mic_index = sr.Microphone.list_microphone_names().index("pulse")
+    # with noalsaerr():
+    mics_available = sr.Microphone.list_microphone_names()
+    mic_index = mics_available.index("pulse")
+    if(mic_index is not None):
         mic = WhisperMic(mic_index=mic_index)
+    else:
+        logging.error(f"Pulse not found! Choose from {mics_available}")
+        exit()
 
 
     processor = TTSProcessor(cache_path = share_path)
     # processor.add_message("Hello, World!")
     # processor.add_message("How are you?")
 
+    processor.speak("Hello World! I'm Oumuamua, I come in peace!'")
+
     while(True):
         logger.info("Checking for speech")
-        wav_files = processor.get_ready_files()
-        if(wav_files != []):
+        while wav_files := processor.get_ready_files():
+            if(wav_files != []):
 
-            wav_files = [str(f.resolve()) for f in wav_files]
-            logger.info(f"Playing: {', '.join(wav_files)}")
+                wav_files = [str(f.resolve()) for f in wav_files]
+                logger.info(f"Playing: {', '.join(wav_files)}")
 
-            mic.mic_active = False
-            play_proc = subprocess.Popen(["aplay"] + wav_files)
-            play_proc.communicate()
-            logger.info("Finished Speaking")
-            time.sleep(1.0)
+                mic.mic_active = False
+                play_proc = subprocess.Popen(["aplay"] + wav_files)
+                play_proc.communicate()
+                logger.info("Finished Speaking")
+                time.sleep(1.0)
+                break
 
 
         mic.mic_active = True
         logger.info("Listening...")
-        result = mic.listen(timeout=2)
+        result = mic.listen(timeout=3)
 
-        if result in ["", None]:
-            continue
+        if result not in ["", None]:
+            mic.mic_active = False
+            result = result.encode('ascii','ignore').decode("ascii").strip()
+            logger.info(f"Result: {result}")
+            processor.add_message(result)
 
-        result = result.encode('ascii','ignore').decode("ascii").strip()
-        logger.info(f"Result: {result}")
-        processor.add_message(result)
+
 
     processor.stop()
 

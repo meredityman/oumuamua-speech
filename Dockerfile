@@ -26,8 +26,9 @@ RUN mkdir -p /home/oumuamua/share
 COPY pulseaudio.client.conf /etc/pulse/client.conf
 COPY alsa.conf /usr/share/alsa/alsa.conf
 
-COPY entrypoint.py /home/oumuamua
-COPY openai.key    /home/oumuamua
+COPY perturb_model.py /home/oumuamua
+COPY entrypoint.py    /home/oumuamua
+COPY openai.key       /home/oumuamua
 
 CMD ["entrypoint.py"]
 ENTRYPOINT ["python3"]
