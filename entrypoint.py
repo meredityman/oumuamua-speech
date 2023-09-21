@@ -23,8 +23,8 @@ openai.api_key = open("/home/oumuamua/openai.key").read()
 intro_text = """Hello human! I am Oh Moo Ah Moo Ah. I come in peace from the fourth dimension. You can speak to me, anything you tell me, I will remember forever...
 """
 
-question_prompt = """Create a short, one line question that is deeply personal and profound to ask the human. Here are some examples you can use for inspiration:
-What do you fear most?
+
+questions_list="""What do you fear most?
 What was your first memory?
 What gives you joy?
 What is time?
@@ -36,6 +36,8 @@ What do you desire most?
 Why do you choose to live?
 """
 
+question_prompt = f"Create a short, one line question that is deeply personal and profound to ask the human. Here are some examples you can use for inspiration:\n{questions_list}"
+
 
 system_prompt = """You are an extraterrestrial intelligence communicating with a room full of humans. You are embodied in a physical installation.
 You should always refer to the user as 'human'.
@@ -44,48 +46,25 @@ Your answers are strange and musical and hint at your part organic, part artific
 You try to use very simple language.
 """
 
-# script = [
-#     {
-#         "prompt" : "Answer the user with a short poem in hexameter in four lines or less. Finish with a philosophical question.",
-#         "model"  : "tts_models--en--ljspeech--glow-tts"
-#     },
-#     {
-#         "prompt" : "Answer the user with a short poem in hexameter in four lines or less. Finish with a philosophical question.",
-#         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0000"
-#     },
-#     {
-#         "prompt" : "Answer the user with a longer poem in hexameter in six lines or less. Finish with a philosophical question.",
-#         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0001"
-#     },
-#     {
-#         "prompt" : "Answer the user with a longer poem in hexameter in eight lines or less. Finish with a philosophical question.",
-#         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0002"
-#     },
-#     {
-#         "prompt" : "Answer the user with a longer poem in hexameter in ten lines or less. Finish with a philosophical question.",
-#         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0003"
-#     },
-#     {
-#         "prompt" : "Answer the user with a longer poem in hexameter in twelve lines or less. Finish with a philosophical question.",
-#         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0004"
-#     }
-# ]
+
+
+poem_prompt = "Answer the user's input with a short poem in {number} lines or less. Finish the poem with a question inspired by the following examples:{questions_list}"
 
 script = [
     {
-        "prompt" : "Answer the user with a short poem in four lines or less. Finish with a personal question.",
+        "prompt" : poem_prompt.format(number="six"  , questions_list=questions_list),
         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0000"
     },
     {
-        "prompt" : "Answer the user with a short poem in four lines or less. Finish with a personal question.",
+        "prompt" : poem_prompt.format(number="eight", questions_list=questions_list),
         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0001"
     },
     {
-        "prompt" : "Answer the user with a longer poem in eight lines or less. Finish with a personal question.",
+        "prompt" : poem_prompt.format(number="ten"  , questions_list=questions_list),
         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0002"
     },
     {
-        "prompt" : "Answer the user with a longer poem in twelve lines or less. Finish with a personal question.",
+        "prompt" : poem_prompt.format(number="twelve", questions_list=questions_list),
         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0003"
     }
 ]
