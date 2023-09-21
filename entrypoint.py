@@ -21,8 +21,12 @@ openai.api_key = open("/home/oumuamua/openai.key").read()
 
 
 intro_text = """Hello human! I am Oh Moo Ah Moo Ah. I come in peace from the fourth dimension. I know neither space nor time. Here I am in Berlin, at Spreehalle. You can speak to me and I will communicate to you the things I have learned from other creatures. Anything you tell me, I will remember forever...
+"""
 
-What is fear to you, human?
+question_prompt = """Ask a short question that is deeply personal and profound. Some examples:
+What do you fear most?
+What was your first memory?
+What gives you joy?
 """
 
 
@@ -234,14 +238,17 @@ class TTSProcessor:
         self.device = device
         self.tts    = None
         self.vocoder_model = "vocoder_models--en--ljspeech--multiband-melgan"
+        self.loaded_model  = None
+        self.desired_model = None
+        self.script_line = None
 
         self.reset()
-        self.iterate()
 
         self.file_lock = threading.Lock()
         self.ready_files = []
 
-        self.message_queue = queue.Queue()
+        self.message_queue  = queue.Queue()
+        self.response_queue = queue.Queue()
 
     def start(self):
         self.running = True
@@ -249,12 +256,15 @@ class TTSProcessor:
         self.processing_thread.start()
 
     def reset(self):
+        assert(len(script) > 1)
         self.history = []
         self.script  = script.copy()
+        self.desired_model = "tts_models--en--ljspeech--glow-tts"
+        self.load_model(self.desired_model)
 
     def iterate(self):
-        self.script_line = self.script.pop(0)
-        self.load_model(self.script_line["model"])
+        self.script_line   = self.script.pop(0)
+        self.desired_model = self.script_line["model"]
         if(len(self.script) == 0):
             logger.warning("Finished script")
             self.reset()
@@ -294,52 +304,72 @@ class TTSProcessor:
             vocoder_config_path   = vocoder_config_path
         ).to(self.device)
 
-    def add_message(self, message):
-        self.file_lock.acquire()
-        self.message_queue.put(message)
+        self.loaded_model = model
 
-    def get_ready_files(self, timeout=2):
-        files = []
+    def add_message(self, message, role):
+        self.file_lock.acquire()
+        if(role == "user"):
+            self.message_queue.put(message)
+        elif(role == "assistant"):
+            self.response_queue.put(message)
+
+    def play_all_audio(self, timeout=-1):
         if self.file_lock.acquire(blocking=True, timeout=timeout):
             files, self.ready_files = self.ready_files, []
             self.file_lock.release()
-        return files
+            self.play_audio(files)
+    
+
     
     def process_queue(self):
         while self.running:
+            if(self.script_line):
+                if(self.script_line["model"] != self.loaded_model):
+                    self.load_model(self.script_line["model"] )
+
             try:
-                message = self.message_queue.get(timeout=1)
-
-                self.process_message(message)
-                self.file_lock.release()
-
-                self.iterate()
-
+                message = self.message_queue.get(timeout=0.2)
+                if(message):
+                    response_message = self.process_message(message)
+                    self.response_queue.put_nowait(response_message)
             except queue.Empty:
-                time.sleep(0.1)
+                # logging.warn("Message timeout")
+                pass
 
-                
+            try:
+                response_message = self.response_queue.get(timeout=0.2)
+                if(response_message):
+                    self.speak(response_message)
+                    self.file_lock.release()
+            except queue.Empty:
+                # logging.warn("Response timeout")
+                pass
 
+
+            # self.iterate()                
+    def play_audio(self, wav_files):
+        wav_files = [str(f.resolve()) for f in wav_files]
+        logger.info(f"Playing: {', '.join(wav_files)}")
+        play_proc = subprocess.Popen(["aplay"] + wav_files)
+        play_proc.communicate()
+        logger.info("Finished Speaking")
             
     def process_message(self, message):
 
         self.history += [{"role": "user", "content": f'{message}'}]
-
         prompt = self.script_line["prompt"]
 
+        return self.get_gpt_response(prompt)
+
+    def get_gpt_response(self, prompt):
         messages = [{"role": "system", "content": system_prompt}]
         messages += [ m for m in self.history]
         messages += [ {"role": "system", "content": f'{prompt}'}]
-
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=messages)
 
-        response_message = response.choices[0].message.content
-        #self.history += [{"role": "assistant", "content": f'{response_message}'}]
-        self.speak(response_message)
-
-
+        return response.choices[0].message.content
 
     def speak(self, response_message):
         wav_uuid = uuid.uuid4()
@@ -372,11 +402,6 @@ def main():
     assert(torch.cuda.is_available())
     device = "cuda"
 
-    # test_tts(share_path, device)
-    # pyaudio_test()
-
-
-
     # with noalsaerr():
     mics_available = sr.Microphone.list_microphone_names()
     mic_index = mics_available.index("pulse")
@@ -388,39 +413,51 @@ def main():
 
 
     processor = TTSProcessor(cache_path = share_path)
-    # processor.add_message("Hello, World!")
-    # processor.add_message("How are you?")
+    processor.start()
 
-    def play_audio(wav_files):
-        wav_files = [str(f.resolve()) for f in wav_files]
-        logger.info(f"Playing: {', '.join(wav_files)}")
-        play_proc = subprocess.Popen(["aplay"] + wav_files)
-        play_proc.communicate()
-        logger.info("Finished Speaking")
 
-       
-    # processor.speak("Hello World! I'm Oh mooer mooer, I come in peace!'")
-    processor.speak(intro_text)
-    wav_files = processor.get_ready_files(timeout=-1)
-    play_audio(wav_files)
+
+      
+    processor.add_message("System started.", "assistant")
+    processor.play_all_audio()
 
 
     mic.start_listening()
-    processor.start()
+
+    invite_interval    = 40
+    interation_timeout = 30
+
+    last_interation  = - interation_timeout
+    last_invite_time = - invite_interval
     while(True):
+        time_now = time.time()
+        if((time_now - last_interation) > 30 and (time_now - last_invite_time) > invite_interval):
+            mic.stop_listening()
+            processor.reset()
+            processor.add_message(intro_text, "assistant")
+
+            question = processor.get_gpt_response(question_prompt)
+            processor.add_message(question, "assistant")
+            processor.play_all_audio()         
+            processor.iterate()
+            last_invite_time = time.time()
+
+            mic.start_listening()
 
         logger.info("Listening...")
         result = mic.listen(timeout=1)
 
         if result not in ["", None]:
             mic.stop_listening()
+
             result = result.encode('ascii','ignore').decode("ascii").strip()
             logger.info(f"Result: {result}")
- 
-            processor.add_message(result)
 
-            wav_files = processor.get_ready_files(timeout=-1)
-            play_audio(wav_files)
+            processor.add_message(result, "user")            
+            processor.play_all_audio()          
+            processor.iterate()
+            last_interation = time.time()
+
             mic.start_listening()
 
     mic.stop_listening()
