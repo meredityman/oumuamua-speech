@@ -19,36 +19,59 @@ logger.setLevel(logging.INFO)
 
 openai.api_key = open("/home/oumuamua/openai.key").read()
 
+
+intro_text = """Hello human! I am Oh Moo Ah Moo Ah. I come in peace from the fourth dimension. I know neither space nor time. Here I am in Berlin, at Spreehalle. You can speak to me and I will communicate to you the things I have learned from other creatures. Anything you tell me, I will remember forever...
+
+What is fear to you, human?
+"""
+
+
 system_prompt = """You are an extraterrestrial intelligence communicating with a room full of humans. You are embodied in a physical installation.
 You should always refer to the user as 'human'.
 You can hear the user and try to understand their language.
 Your answers are strange and musical and hint at your part organic, part artificial nature.
+You try to use very simple language.
 """
+
+# script = [
+#     {
+#         "prompt" : "Answer the user with a short poem in hexameter in four lines or less. Finish with a philosophical question.",
+#         "model"  : "tts_models--en--ljspeech--glow-tts"
+#     },
+#     {
+#         "prompt" : "Answer the user with a short poem in hexameter in four lines or less. Finish with a philosophical question.",
+#         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0000"
+#     },
+#     {
+#         "prompt" : "Answer the user with a longer poem in hexameter in six lines or less. Finish with a philosophical question.",
+#         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0001"
+#     },
+#     {
+#         "prompt" : "Answer the user with a longer poem in hexameter in eight lines or less. Finish with a philosophical question.",
+#         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0002"
+#     },
+#     {
+#         "prompt" : "Answer the user with a longer poem in hexameter in ten lines or less. Finish with a philosophical question.",
+#         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0003"
+#     },
+#     {
+#         "prompt" : "Answer the user with a longer poem in hexameter in twelve lines or less. Finish with a philosophical question.",
+#         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0004"
+#     }
+# ]
 
 script = [
     {
-        "prompt" : "Answer the user with another question relating to their question.",
-        "model"  : "tts_models--en--ljspeech--glow-tts"
-    },
-    {
-        "prompt" : "Answer the user with a short poem in hexameter in four lines or less.",
-        "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0000"
-    },
-    {
-        "prompt" : "Answer the user with a longer poem in hexameter in six lines or less.",
+        "prompt" : "Answer the user with a short poem in four lines or less. Finish with a philosophical question.",
         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0001"
     },
     {
-        "prompt" : "Answer the user with a longer poem in hexameter in eight lines or less.",
+        "prompt" : "Answer the user with a longer poem in eight lines or less. Finish with a philosophical question.",
         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0002"
     },
     {
-        "prompt" : "Answer the user with a longer poem in hexameter in ten lines or less.",
+        "prompt" : "Answer the user with a longer poem in twelve lines or less. Finish with a philosophical question.",
         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0003"
-    },
-    {
-        "prompt" : "Answer the user with a longer poem in hexameter in twelve lines or less.",
-        "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0004"
     }
 ]
 
@@ -86,7 +109,7 @@ class WhisperMic:
         self.dynamic_energy = dynamic_energy
         self.verbose = verbose
         self.english = english
-        self.phrase_time_limit = 20
+        self.phrase_time_limit = 5
         # self.keyboard = pynput.keyboard.Controller()
 
         self.platform = platform.system()
@@ -214,7 +237,6 @@ class TTSProcessor:
 
         self.reset()
         self.iterate()
-        self.load_model()
 
         self.file_lock = threading.Lock()
         self.ready_files = []
@@ -231,15 +253,15 @@ class TTSProcessor:
         self.script  = script.copy()
 
     def iterate(self):
-        if(len(self.script) == 1):
+        self.script_line = self.script.pop(0)
+        self.load_model(self.script_line["model"])
+        if(len(self.script) == 0):
             logger.warning("Finished script")
             self.reset()
 
-        self.script_line = self.script.pop(0)
 
-
-    def load_model(self):
-        model = self.script_line["model"]
+    def load_model(self, model):
+        # model = self.script_line["model"]
 
         model_path           = Path(self.tts_root, model, "model_file.pth")
         assert(model_path.exists())
@@ -292,7 +314,6 @@ class TTSProcessor:
                 self.file_lock.release()
 
                 self.iterate()
-                self.load_model()
 
             except queue.Empty:
                 time.sleep(0.1)
@@ -378,7 +399,8 @@ def main():
         logger.info("Finished Speaking")
 
        
-    processor.speak("Hello World! I'm Oumuamua, I come in peace!'")
+    # processor.speak("Hello World! I'm Oh mooer mooer, I come in peace!'")
+    processor.speak(intro_text)
     wav_files = processor.get_ready_files(timeout=-1)
     play_audio(wav_files)
 
@@ -388,7 +410,7 @@ def main():
     while(True):
 
         logger.info("Listening...")
-        result = mic.listen(timeout=3)
+        result = mic.listen(timeout=1)
 
         if result not in ["", None]:
             mic.stop_listening()
