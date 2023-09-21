@@ -20,13 +20,20 @@ logger.setLevel(logging.INFO)
 openai.api_key = open("/home/oumuamua/openai.key").read()
 
 
-intro_text = """Hello human! I am Oh Moo Ah Moo Ah. I come in peace from the fourth dimension. I know neither space nor time. Here I am in Berlin, at Spreehalle. You can speak to me and I will communicate to you the things I have learned from other creatures. Anything you tell me, I will remember forever...
+intro_text = """Hello human! I am Oh Moo Ah Moo Ah. I come in peace from the fourth dimension. You can speak to me, anything you tell me, I will remember forever...
 """
 
 question_prompt = """Ask a short question that is deeply personal and profound. Some examples:
 What do you fear most?
 What was your first memory?
 What gives you joy?
+What is time?
+Who do you miss?
+What makes you tick?
+What is your secret?
+Who do you love more than yourself?
+What do you desire most?
+Why do you choose to live?
 """
 
 
@@ -65,6 +72,10 @@ You try to use very simple language.
 # ]
 
 script = [
+    {
+        "prompt" : "Answer the user with a short poem in four lines or less. Finish with a philosophical question.",
+        "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0000"
+    },
     {
         "prompt" : "Answer the user with a short poem in four lines or less. Finish with a philosophical question.",
         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0001"
