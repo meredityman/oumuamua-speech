@@ -23,7 +23,7 @@ openai.api_key = open("/home/oumuamua/openai.key").read()
 intro_text = """Hello human! I am Oh Moo Ah Moo Ah. I come in peace from the fourth dimension. You can speak to me, anything you tell me, I will remember forever...
 """
 
-question_prompt = """Ask a short question that is deeply personal and profound. Some examples:
+question_prompt = """Create a short, one line question that is deeply personal and profound to ask the human. Here are some examples you can use for inspiration:
 What do you fear most?
 What was your first memory?
 What gives you joy?
@@ -73,19 +73,19 @@ You try to use very simple language.
 
 script = [
     {
-        "prompt" : "Answer the user with a short poem in four lines or less. Finish with a philosophical question.",
+        "prompt" : "Answer the user with a short poem in four lines or less. Finish with a personal question.",
         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0000"
     },
     {
-        "prompt" : "Answer the user with a short poem in four lines or less. Finish with a philosophical question.",
+        "prompt" : "Answer the user with a short poem in four lines or less. Finish with a personal question.",
         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0001"
     },
     {
-        "prompt" : "Answer the user with a longer poem in eight lines or less. Finish with a philosophical question.",
+        "prompt" : "Answer the user with a longer poem in eight lines or less. Finish with a personal question.",
         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0002"
     },
     {
-        "prompt" : "Answer the user with a longer poem in twelve lines or less. Finish with a philosophical question.",
+        "prompt" : "Answer the user with a longer poem in twelve lines or less. Finish with a personal question.",
         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0003"
     }
 ]
@@ -373,14 +373,19 @@ class TTSProcessor:
         return self.get_gpt_response(prompt)
 
     def get_gpt_response(self, prompt):
-        messages = [{"role": "system", "content": system_prompt}]
-        messages += [ m for m in self.history]
-        messages += [ {"role": "system", "content": f'{prompt}'}]
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=messages)
+        while(True):
+            try:
+                messages = [{"role": "system", "content": system_prompt}]
+                messages += [ m for m in self.history]
+                messages += [ {"role": "system", "content": f'{prompt}'}]
+                response = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo",
+                    messages=messages)
 
-        return response.choices[0].message.content
+                return response.choices[0].message.content
+            except Exception as e:
+                logging.warn(e.decode())
+                time.sleep(1.0)
 
     def speak(self, response_message):
         wav_uuid = uuid.uuid4()
