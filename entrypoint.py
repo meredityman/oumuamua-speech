@@ -20,20 +20,19 @@ logger.setLevel(logging.INFO)
 openai.api_key = open("/home/oumuamua/openai.key").read()
 
 
-intro_text = """Hello human! I am Oh Moo Ah Moo Ah. I come in peace from the fourth dimension. You can speak to me, anything you tell me, I will remember forever...
+intro_text = """Hello human! I am Oh Moo Ah Moo Ah. I come in peace from the fourth dimension. Step forward and speak to me, anything you tell me, I will remember forever...
 """
 
 
-questions_list="""What do you fear most?
-What was your first memory?
-What gives you joy?
-What is time?
-Who do you miss?
-What makes you tick?
-What is your secret?
-Who do you love more than yourself?
-What do you desire most?
-Why do you choose to live?
+questions_list="""Tell me, what do you fear most?
+Tell me, what was your first memory?
+Tell me, what gives you joy?
+Tell me, what is time?
+Tell me, who do you miss?
+Tell me, what is your secret?
+Tell me, who do you love more than yourself?
+Tell me, what do you desire most?
+Tell me, why do you choose to live?
 """
 
 question_prompt = f"Create a short, one line question that is deeply personal and profound to ask the human. Here are some examples you can use for inspiration:\n{questions_list}"
@@ -42,21 +41,21 @@ question_prompt = f"Create a short, one line question that is deeply personal an
 system_prompt = """You are an extraterrestrial intelligence communicating with a room full of humans. You are embodied in a physical installation.
 You should always refer to the user as 'human'.
 You can hear the user and try to understand their language.
-Your answers are strange and musical and hint at your part organic, part artificial nature.
+Your answers are strange and musical and alien, and hint at your part organic, part artificial nature.
 You try to use very simple language.
 """
 
 
 
-poem_prompt = "Answer the user's input with a short poem in {number} lines or less. Finish the poem with a question inspired by the following examples:{questions_list}"
+poem_prompt = "Answer the user's input with a short poem in {number} lines or less. Finish the poem with a personal question inspired by the following examples:{questions_list}"
 
 script = [
     {
-        "prompt" : poem_prompt.format(number="six"  , questions_list=questions_list),
+        "prompt" : poem_prompt.format(number="eight"  , questions_list=questions_list),
         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0000"
     },
     {
-        "prompt" : poem_prompt.format(number="eight", questions_list=questions_list),
+        "prompt" : poem_prompt.format(number="six", questions_list=questions_list),
         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0001"
     },
     {
@@ -64,7 +63,7 @@ script = [
         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0002"
     },
     {
-        "prompt" : poem_prompt.format(number="twelve", questions_list=questions_list),
+        "prompt" : poem_prompt.format(number="four", questions_list=questions_list),
         "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0003"
     }
 ]
@@ -95,7 +94,7 @@ script = [
 #     p.terminate()
 
 class WhisperMic:
-    def __init__(self,model="base",device=("cuda" if torch.cuda.is_available() else "cpu"),english=False,verbose=False,energy=300,pause=0.8,dynamic_energy=False,mic_index=None):
+    def __init__(self,model="base",device=("cuda" if torch.cuda.is_available() else "cpu"),english=False,verbose=False,energy=300,pause=1.8,dynamic_energy=False,mic_index=None):
         # self.logger = get_logger("whisper_mic", "info")
         self.logger = logger
         self.energy = energy
@@ -103,7 +102,7 @@ class WhisperMic:
         self.dynamic_energy = dynamic_energy
         self.verbose = verbose
         self.english = english
-        self.phrase_time_limit = 5
+        self.phrase_time_limit = 3
         # self.keyboard = pynput.keyboard.Controller()
 
         self.platform = platform.system()
@@ -120,7 +119,7 @@ class WhisperMic:
         self.mic_active  = False
         self.audio_queue = None
 
-        self.banned_results = [""," ","\n",None]
+        self.banned_results = [""," ","\n", "Thank you.",None]
 
         logger.info("Setting up Mic...")
         self.setup_mic(mic_index)
@@ -168,7 +167,7 @@ class WhisperMic:
             self.transcribe(data=audio_data)
             while True: 
                 try:
-                    return self.result_queue.get(block=True, timeout=1)
+                    return self.result_queue.get(block=True, timeout=0.5)
                 except queue.Empty:
                     return None
         else:
@@ -182,7 +181,7 @@ class WhisperMic:
         audio = bytes()
         got_audio = False
         time_start = time.time()
-        while not got_audio or time.time() - time_start < min_time:
+        while not got_audio or time.time() - time_start < 2.0:
             try:
                 audio += self.audio_queue.get(timeout=min_time)
             except queue.Empty:
@@ -337,11 +336,13 @@ class TTSProcessor:
 
 
             # self.iterate()                
-    def play_audio(self, wav_files):
+    def play_audio(self, wav_files, blocking=True):
         wav_files = [str(f.resolve()) for f in wav_files]
         logger.info(f"Playing: {', '.join(wav_files)}")
         play_proc = subprocess.Popen(["aplay"] + wav_files)
-        play_proc.communicate()
+        if blocking:
+            play_proc.communicate()
+
         logger.info("Finished Speaking")
             
     def process_message(self, message):
@@ -352,7 +353,7 @@ class TTSProcessor:
         return self.get_gpt_response(prompt)
 
     def get_gpt_response(self, prompt):
-        while(True):
+        for _ in range(5):
             try:
                 messages = [{"role": "system", "content": system_prompt}]
                 messages += [ m for m in self.history]
@@ -363,8 +364,11 @@ class TTSProcessor:
 
                 return response.choices[0].message.content
             except Exception as e:
-                logging.warn(e.decode())
+                logging.warn(e)
                 time.sleep(1.0)
+        
+        logging.warn("GPT Timed out!")
+        return "I am lost"
 
     def speak(self, response_message):
         wav_uuid = uuid.uuid4()
@@ -410,23 +414,21 @@ def main():
     processor = TTSProcessor(cache_path = share_path)
     processor.start()
 
-
-
-      
     processor.add_message("System started.", "assistant")
     processor.play_all_audio()
 
-
     mic.start_listening()
 
-    invite_interval    = 40
-    interation_timeout = 30
+    invite_interval    = 50
+    interation_timeout = 40
 
     last_interation  = - interation_timeout
     last_invite_time = - invite_interval
     while(True):
         time_now = time.time()
-        if((time_now - last_interation) > 30 and (time_now - last_invite_time) > invite_interval):
+        if(     ((time_now - last_interation) > 30 and (time_now - last_invite_time) > invite_interval) or 
+                ((time_now - last_invite_time) > 2 * invite_interval)
+            ):
             mic.stop_listening()
             processor.reset()
             processor.add_message(intro_text, "assistant")
@@ -444,6 +446,8 @@ def main():
 
         if result not in ["", None]:
             mic.stop_listening()
+            
+            processor.play_audio([Path("share/thankyou.wav")], blocking=False)
 
             result = result.encode('ascii','ignore').decode("ascii").strip()
             logger.info(f"Result: {result}")
