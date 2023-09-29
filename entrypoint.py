@@ -128,7 +128,8 @@ class WhisperMic:
     def setup_mic(self, mic_index):
         if mic_index is None:
             self.logger.info("No mic index provided, using default")
-        self.source = sr.Microphone(sample_rate=16000, device_index=mic_index)
+
+        self.mic_index = mic_index
 
         self.recorder = sr.Recognizer()
         self.recorder.energy_threshold = self.energy
@@ -144,8 +145,14 @@ class WhisperMic:
 
         self.audio_queue = queue.Queue()
 
-        with self.source:
-            self.recorder.adjust_for_ambient_noise(self.source)
+        for _ in range(5):
+            try:
+                self.source = sr.Microphone(sample_rate=16000, device_index=self.mic_index)
+                with self.source:
+                    self.recorder.adjust_for_ambient_noise(self.source)
+                break
+            except AssertionError:
+                time.sleep(0.2)
 
         self.mic_active = True
         self.stop_callback = self.recorder.listen_in_background(self.source, self.record_callback, phrase_time_limit=self.phrase_time_limit)
@@ -167,7 +174,7 @@ class WhisperMic:
             self.transcribe(data=audio_data)
             while True: 
                 try:
-                    return self.result_queue.get(block=True, timeout=0.5)
+                    return self.result_queue.get(block=True, timeout=0.5).strip()
                 except queue.Empty:
                     return None
         else:
@@ -444,7 +451,7 @@ def main():
         logger.info("Listening...")
         result = mic.listen(timeout=1)
 
-        if result not in ["", None]:
+        if result not in ["", None] and (len(result.split(" ")) > 2):
             mic.stop_listening()
             
             processor.play_audio([Path("share/thankyou.wav")], blocking=False)
