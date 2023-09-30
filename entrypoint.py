@@ -119,7 +119,7 @@ class WhisperMic:
         self.mic_active  = False
         self.audio_queue = None
 
-        self.banned_results = [""," ","\n", "Thank you.",None]
+        self.banned_results = [""," ","\n", "Thank you.", None]
 
         logger.info("Setting up Mic...")
         self.setup_mic(mic_index)
