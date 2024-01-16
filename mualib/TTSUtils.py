@@ -32,7 +32,7 @@ def load_tts_model(model_name, vocoder_model, tts_root, device):
 
     # Init TTS
     tts = TTS(
-        model_name            = "tts_models/en/ljspeech/glow-tts",
+        model_name            = None,
         model_path            = model_path         ,
         config_path           = config_path        ,
         vocoder_path          = vocoder_path       ,

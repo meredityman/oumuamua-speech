@@ -44,7 +44,7 @@ def main():
     tts.tts_to_file(
         text=str(args.text), 
         file_path=Path(wav_file_path),
-        speaker = "en"
+        speaker=None, language=None
     )
     logger.info(f"Saved: {wav_file_path}")
 
