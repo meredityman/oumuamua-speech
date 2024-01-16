@@ -44,6 +44,14 @@ perturb() {
         -it "oumuamua" perturb_model.py
 }
 
+make_audio() {
+    docker run --rm --gpus=all --entrypoint=python3 \
+        -v $PWD/share:/home/oumuamua/share \
+        -v $HOME/.local/share/tts:/home/oumuamua/.local/share/tts \
+        -it "oumuamua" make_audio.py "$@"
+}
+
+
 
 dev() {
     setup_audio
@@ -104,6 +112,7 @@ case ${1:-build} in
     build) build ;;
     dev) dev ;;
     perturb) perturb ;;
+    make_audio) make_audio ;;
     speaker_test) speaker_test ;;
     whisper_test) whisper_test ;;
     run) run ;;

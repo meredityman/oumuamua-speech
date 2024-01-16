@@ -9,7 +9,7 @@ RUN apt-get install -y --no-install-recommends \
 
 
 RUN --mount=type=cache,target=/root/.cache \
-    pip3 install pyaudio TTS openai-whisper SpeechRecognition openai
+    pip3 install pyaudio TTS openai-whisper SpeechRecognition openai==0.28
 
 # RUN rm -rf /root/.cache/pip
 
@@ -21,15 +21,20 @@ WORKDIR /home/oumuamua
 RUN mkdir -p /home/oumuamua/.local/share/tts/
 RUN mkdir -p /home/oumuamua/.cache/whisper/
 RUN mkdir -p /home/oumuamua/share
+RUN mkdir -p /home/oumuamua/mualib
 # COPY . /root
 
 COPY pulseaudio.client.conf /etc/pulse/client.conf
-COPY alsa.conf /usr/share/alsa/alsa.conf
-COPY asoundrc /usr/etc/asound.conf
+COPY alsa.conf /usr/share/alsa/alsa.confs
+COPY asoundrc /usr/etc/asound.confs
 
+COPY make_audio.py    /home/oumuamua
 COPY perturb_model.py /home/oumuamua
 COPY entrypoint.py    /home/oumuamua
 COPY openai.key       /home/oumuamua
+
+ADD mualib        /home/oumuamua/mualib
+ENV PYTHONPATH "${PYTHONPATH}:/home/oumuamua/mualib"
 
 CMD ["entrypoint.py"]
 ENTRYPOINT ["python3"]
