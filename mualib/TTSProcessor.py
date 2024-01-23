@@ -134,7 +134,7 @@ class TTSProcessor:
         # try:
         self.tts.tts_to_file(
             text=response_message, 
-            file_path=Path(wav_file_path), language="en"
+            file_path=Path(wav_file_path)
         )
         logger.info(f"Saved: {wav_file_path}")
         self.ready_files.append(wav_file_path)

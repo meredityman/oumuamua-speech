@@ -7,10 +7,14 @@ logger = logging.getLogger()
 
 def load_tts_model(model_name, vocoder_model, tts_root, device):
     # model = self.script_line["model"]
-    logger.info(str(TTS().list_models().list_models()))
+    logger.info(str(TTS().list_models()))
 
-    model_path           = Path(tts_root, model_name, "model_file.pth")
-    assert(model_path.exists())
+    try:
+        model_path           = Path(tts_root, model_name, "model_file.pth")
+        assert(model_path.exists())
+    except:
+        logging.error(f"Can't find {model_path}")
+        raise
 
     config_path          = Path(tts_root, model_name, "config.json")
     assert(config_path.exists())

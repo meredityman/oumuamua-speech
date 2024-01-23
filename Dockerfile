@@ -9,7 +9,7 @@ RUN apt-get install -y --no-install-recommends \
 
 
 RUN --mount=type=cache,target=/root/.cache \
-    pip3 install pyaudio TTS openai-whisper SpeechRecognition openai==0.28
+    pip3 install pyaudio TTS==0.19.1 openai-whisper SpeechRecognition openai==0.28
 
 # RUN rm -rf /root/.cache/pip
 
