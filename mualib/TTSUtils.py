@@ -38,5 +38,6 @@ def load_tts_model(model_name, vocoder_model, tts_root, device):
         vocoder_path          = vocoder_path       ,
         vocoder_config_path   = vocoder_config_path,
     ).to(device)
+    # tts.is_multi_lingual = False
 
     return tts 

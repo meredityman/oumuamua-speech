@@ -21,6 +21,10 @@ def main():
         help="Text",
     )
     parser.add_argument(
+        "--name", type=str,
+        help="Filename",
+    )
+    parser.add_argument(
         "--model_name", type=str,
         default="tts_models--en--ljspeech--glow-tts_glitch_0000",
         help="Model",
@@ -37,14 +41,17 @@ def main():
 
     tts = load_tts_model(args.model_name, vocoder_model, tts_root, device)
 
-    wav_uuid = uuid.uuid4()
-    wav_file_path = Path(share_path, f"{wav_uuid}.wav")
+    if(args.name):
+        wav_file_path = Path(share_path, f"{args.name}.wav")
+    else:
+        wav_uuid = uuid.uuid4()
+        wav_file_path = Path(share_path, f"{wav_uuid}.wav")
     logger.info(f"Processing message: '{args.text}' -> {wav_file_path}")
 
     tts.tts_to_file(
         text=str(args.text), 
         file_path=Path(wav_file_path),
-        speaker=None, language=None
+        language="en"
     )
     logger.info(f"Saved: {wav_file_path}")
 
