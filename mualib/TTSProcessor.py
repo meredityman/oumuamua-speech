@@ -9,6 +9,7 @@ openai.api_key = open("/home/oumuamua/openai.key").read()
 
 class TTSProcessor:
     def __init__(self, script, system_prompt, tts_root = "/home/oumuamua/.local/share/tts", cache_path = "/tmp", device = "cuda"):
+        self.script = script
         self.system_prompt = system_prompt
         self.tts_root = Path(tts_root)
         self.cache_path = cache_path
@@ -19,7 +20,7 @@ class TTSProcessor:
         self.desired_model = None
         self.script_line = None
 
-        self.reset(script)
+        self.reset(self.script)
 
         self.file_lock = threading.Lock()
         self.ready_files = []
@@ -44,7 +45,7 @@ class TTSProcessor:
         self.desired_model = self.script_line["model"]
         if(len(self.script) == 0):
             logger.warning("Finished script")
-            self.reset()
+            self.reset(self.script)
 
 
     def load_model(self, model):
