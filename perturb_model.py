@@ -14,7 +14,8 @@ def perturb_weights(state_dict, perturbation_scale, perturbation_prob):
             #         continue
             # except:
             #     continue
-            if(key.startswith("encoder")):
+            if(key.startswith("text_encoder.encoder.attn_layers.") or key.startswith("duration_predictor.flows.2.")) :
+                print(key)
             # if(key == "encoder.prenet.proj.weight"):
                 if random.random() < perturbation_prob:
                     noise = torch.randn(value.size(), device=value.device) * perturbation_scale
@@ -30,8 +31,8 @@ def main(args):
     # Load the checkpoint file (.pth) as a state_dict
     state_dict = torch.load(orig_model)
 
-    for key, value in state_dict['model'].items():
-        print(key)
+    # for key, value in state_dict['model'].items():
+    #     print(key)
 
     N = 5
     for i in range(N):

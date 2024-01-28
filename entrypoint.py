@@ -2,6 +2,7 @@
 
 import logging, time
 from pathlib import Path
+import argparse
 from contextlib import contextmanager
 import torch
 import speech_recognition as sr
@@ -38,8 +39,6 @@ Your answers are strange and musical and alien, and hint at your part organic, p
 You try to use very simple language.
 """
 
-
-
 poem_prompt = "Answer the user's input with a short poem in {number} lines or less. Finish the poem with a personal question inspired by the following examples:{questions_list}"
 
 script = [
@@ -64,7 +63,7 @@ script = [
 
 
 
-def main():
+def main(args):
     logger.info(f"Entering Main...")
     # logger.info(subprocess.call("nvidia-smi"))
     # logging.info(subprocess.call("pactl info"))
@@ -83,7 +82,6 @@ def main():
         logging.error(f"Pulse not found! Choose from {mics_available}")
         exit()
 
-
     processor = TTSProcessor(script, system_prompt, cache_path = share_path)
     processor.start()
 
@@ -92,15 +90,12 @@ def main():
 
     mic.start_listening()
 
-    invite_interval    = 50
-    interation_timeout = 40
-
-    last_interation  = - interation_timeout
-    last_invite_time = - invite_interval
+    last_interation  = - args.interation_timeout
+    last_invite_time = - args.invite_interval
     while(True):
         time_now = time.time()
-        if(     ((time_now - last_interation) > 30 and (time_now - last_invite_time) > invite_interval) or 
-                ((time_now - last_invite_time) > 2 * invite_interval)
+        if(     ((time_now - last_interation) > 30 and (time_now - last_invite_time) > args.invite_interval) or 
+                ((time_now - last_invite_time) > 2 * args.invite_interval)
             ):
             mic.stop_listening()
             processor.reset(script)
@@ -114,8 +109,9 @@ def main():
 
             mic.start_listening()
 
+
         logger.info("Listening...")
-        result = mic.listen(timeout=1)
+        result = mic.listen(timeout=args.mic_timeout)
 
         if result not in ["", None] and (len(result.split(" ")) > 2):
             mic.stop_listening()
@@ -137,4 +133,11 @@ def main():
     logging.info("Exiting...")
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description='')
+    parser.add_argument('--invite_interval'   , default=50 , type=int)
+    parser.add_argument('--interation_timeout', default=40 , type=int)
+    parser.add_argument('--mic_timeout'       , default=1.0, type=float)
+
+    args = parser.parse_args()
+
+    main(args)

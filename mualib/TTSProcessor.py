@@ -11,18 +11,18 @@ class TTSProcessor:
     def __init__(self, script, system_prompt, tts_root = "/home/oumuamua/.local/share/tts", cache_path = "/tmp", device = "cuda"):
         self.script = script
         self.system_prompt = system_prompt
-        self.tts_root = Path(tts_root)
-        self.cache_path = cache_path
+        self.tts_root      = Path(tts_root)
+        self.cache_path    = cache_path
         self.device = device
         self.tts    = None
         self.vocoder_model = "vocoder_models--en--ljspeech--multiband-melgan"
         self.loaded_model  = None
         self.desired_model = None
-        self.script_line = None
+        self.script_line   = None
 
         self.reset(self.script)
 
-        self.file_lock = threading.Lock()
+        self.file_lock   = threading.Lock()
         self.ready_files = []
 
         self.message_queue  = queue.Queue()
