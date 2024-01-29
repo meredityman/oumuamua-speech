@@ -9,17 +9,16 @@ openai.api_key = open("/home/oumuamua/openai.key").read()
 
 class TTSProcessor:
     def __init__(self, model_list, system_prompt, tts_root = "/home/oumuamua/.local/share/tts", cache_path = "/tmp", device = "cuda"):
-        self.model_list = model_list
+        self.orig_model_list = model_list
         self.system_prompt = system_prompt
         self.tts_root      = Path(tts_root)
         self.cache_path    = cache_path
         self.device = device
         self.tts    = {}
         self.vocoder_model = "vocoder_models--en--ljspeech--multiband-melgan"
-        self.desired_model = None
         self.model_list_line   = None
 
-        self.reset(self.model_list)
+        self.reset()
 
         self.file_lock   = threading.Lock()
         self.ready_files = []
@@ -32,18 +31,17 @@ class TTSProcessor:
         self.processing_thread = threading.Thread(target=self.process_queue)
         self.processing_thread.start()
 
-    def reset(self, model_list):
-        assert(len(model_list) > 1)
+    def reset(self):
         self.history = []
-        self.model_list  = model_list.copy()
+        self.model_list  = self.orig_model_list.copy()
+        assert(len(self.model_list) > 1)
         self.load_model(self.model_list[0]["en"]["model"], self.model_list[0]["de"]["model"])
 
     def iterate(self):
         self.model_list_line   = self.model_list.pop(0)
-        self.desired_model = self.model_list_line["en"]["model"]
         if(len(self.model_list) == 0):
             logger.warning("Finished model_list")
-            self.reset(self.model_list)
+            self.reset()
 
 
     def load_model(self, model_en, model_de):
@@ -72,7 +70,7 @@ class TTSProcessor:
     def process_queue(self):
         while self.running:
             if(self.model_list_line):
-                if(self.model_list_line["en"]["model"] != self.loaded_model["en"]):
+                if(self.loaded_model == {} or self.model_list_line["en"]["model"] != self.loaded_model["en"]):
                     self.load_model(self.model_list_line["en"]["model"], self.model_list_line["de"]["model"]  )
 
             try:

@@ -39,7 +39,7 @@ Your answers are strange and musical and alien, and hint at your part organic, p
 You try to use very simple language.
 """
 
-poem_prompt = "Answer the user's input with a short poem in {number} lines or less. Finish the poem with a personal question inspired by the following examples:{questions_list}"
+poem_prompt = "Answer the user's input with a short poem in {number} lines or less. The poem can be in English or German. Finish the poem with a personal question inspired by the following examples:{questions_list}"
 
 # script = [
 #     {
@@ -76,7 +76,7 @@ script = [
             "model"  : "tts_models--en--ljspeech--vits_glitch_0001"
         },
         "de": {
-            "model"  : "tts_models--de--thorsten--vits_glitch_0000"
+            "model"  : "tts_models--de--thorsten--vits_glitch_0001"
         },
     },
     {
@@ -85,7 +85,7 @@ script = [
             "model"  : "tts_models--en--ljspeech--vits_glitch_0002"
         },
         "de": {
-            "model"  : "tts_models--de--thorsten--vits_glitch_0000"
+            "model"  : "tts_models--de--thorsten--vits_glitch_0002"
         },
     },
     {
@@ -94,7 +94,7 @@ script = [
             "model"  : "tts_models--en--ljspeech--vits_glitch_0003"
         },
         "de": {
-            "model"  : "tts_models--de--thorsten--vits_glitch_0000"
+            "model"  : "tts_models--de--thorsten--vits_glitch_0003"
         },
     }
 ]
@@ -136,7 +136,7 @@ def main(args):
                 ((time_now - last_invite_time) > 2 * args.invite_interval)
             ):
             mic.stop_listening()
-            processor.reset(script)
+            processor.reset()
             processor.add_message(intro_text, "assistant")
 
             question = processor.get_gpt_response(question_prompt)
