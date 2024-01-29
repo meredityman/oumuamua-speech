@@ -55,7 +55,7 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Load a PyTorch model, perturb its weights, and save the perturbed model.')
-    parser.add_argument('--input_path', default=".local/share/tts/tts_models--en--ljspeech--glow-tts",
+    parser.add_argument('--input_path', default=".local/share/tts/tts_models--en--ljspeech--vits",
         type=str, help='Path to the input model checkpoint file (.pth).')
     parser.add_argument('--output_path', default=".local/share/tts", 
         type=str, help='Path to save the perturbed model checkpoint.')

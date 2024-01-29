@@ -18,30 +18,38 @@ def load_tts_model(model_name, vocoder_model, tts_root, device):
 
     config_path          = Path(tts_root, model_name, "config.json")
     assert(config_path.exists())
-    vocoder_path         = Path(tts_root, vocoder_model, "model_file.pth")
-    assert(vocoder_path.exists())
-    _vocoder_config_path = Path(tts_root, vocoder_model, "config.json")
-    vocoder_config_path  = Path(tts_root, vocoder_model, "_config.json")
+
+    if vocoder_model is not None:
+        vocoder_path         = Path(tts_root, vocoder_model, "model_file.pth")
+        assert(vocoder_path.exists())
+        _vocoder_config_path = Path(tts_root, vocoder_model, "config.json")
+        vocoder_config_path  = Path(tts_root, vocoder_model, "_config.json")
+
+        with open(_vocoder_config_path, 'r') as file:
+            data = file.read()
+        data = data.replace('/home/meredityman/', '/home/oumuamua/')
+        with open(vocoder_config_path, 'w') as file:
+            file.write(data)
+        
+        assert(vocoder_config_path.exists())   
 
 
-    logger.info(f"Loading model {model_name}")
+        logger.info(f"Loading model {model_name}")
 
-    with open(_vocoder_config_path, 'r') as file:
-        data = file.read()
-    data = data.replace('/home/meredityman/', '/home/oumuamua/')
-    with open(vocoder_config_path, 'w') as file:
-        file.write(data)
-
-    assert(vocoder_config_path.exists())   
-
-    # Init TTS
-    tts = TTS(
-        model_name            = None,
-        model_path            = model_path         ,
-        config_path           = config_path        ,
-        vocoder_path          = vocoder_path       ,
-        vocoder_config_path   = vocoder_config_path,
-    ).to(device)
-    # tts.is_multi_lingual = False
+        # Init TTS
+        tts = TTS(
+            model_name            = None,
+            model_path            = model_path         ,
+            config_path           = config_path        ,
+            vocoder_path          = vocoder_path       ,
+            vocoder_config_path   = vocoder_config_path,
+        ).to(device)
+    else:
+        # Init TTS
+        tts = TTS(
+            model_name            = None,
+            model_path            = model_path         ,
+            config_path           = config_path        ,
+        ).to(device)     
 
     return tts 

@@ -41,25 +41,63 @@ You try to use very simple language.
 
 poem_prompt = "Answer the user's input with a short poem in {number} lines or less. Finish the poem with a personal question inspired by the following examples:{questions_list}"
 
+# script = [
+#     {
+#         "prompt" : poem_prompt.format(number="eight"  , questions_list=questions_list),
+#         "model"  : "tts_models--de--thorsten--vits_glitch_0000"
+#     },
+#     {
+#         "prompt" : poem_prompt.format(number="six", questions_list=questions_list),
+#         "model"  : "tts_models--de--thorsten--vits_glitch_0001"
+#     },
+#     {
+#         "prompt" : poem_prompt.format(number="ten"  , questions_list=questions_list),
+#         "model"  : "tts_models--de--thorsten--vits_glitch_0002"
+#     },
+#     {
+#         "prompt" : poem_prompt.format(number="four", questions_list=questions_list),
+#         "model"  : "tts_models--de--thorsten--vits_glitch_0003"
+#     }
+# ]
+
 script = [
     {
-        "prompt" : poem_prompt.format(number="eight"  , questions_list=questions_list),
-        "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0000"
+        "en": {
+            "prompt" : poem_prompt.format(number="eight"  , questions_list=questions_list),
+            "model"  : "tts_models--en--ljspeech--vits_glitch_0000"
+        },
+        "de": {
+            "model"  : "tts_models--de--thorsten--vits_glitch_0000"
+        },
     },
     {
-        "prompt" : poem_prompt.format(number="six", questions_list=questions_list),
-        "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0001"
+        "en": {
+            "prompt" : poem_prompt.format(number="six", questions_list=questions_list),
+            "model"  : "tts_models--en--ljspeech--vits_glitch_0001"
+        },
+        "de": {
+            "model"  : "tts_models--de--thorsten--vits_glitch_0000"
+        },
     },
     {
-        "prompt" : poem_prompt.format(number="ten"  , questions_list=questions_list),
-        "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0002"
+        "en": {
+            "prompt" : poem_prompt.format(number="ten"  , questions_list=questions_list),
+            "model"  : "tts_models--en--ljspeech--vits_glitch_0002"
+        },
+        "de": {
+            "model"  : "tts_models--de--thorsten--vits_glitch_0000"
+        },
     },
     {
-        "prompt" : poem_prompt.format(number="four", questions_list=questions_list),
-        "model"  : "tts_models--en--ljspeech--glow-tts_glitch_0003"
+        "en": {
+            "prompt" : poem_prompt.format(number="four", questions_list=questions_list),
+            "model"  : "tts_models--en--ljspeech--vits_glitch_0003"
+        },
+        "de": {
+            "model"  : "tts_models--de--thorsten--vits_glitch_0000"
+        },
     }
 ]
-
 
 
 

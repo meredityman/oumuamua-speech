@@ -8,19 +8,18 @@ logger = logging.getLogger()
 openai.api_key = open("/home/oumuamua/openai.key").read()
 
 class TTSProcessor:
-    def __init__(self, script, system_prompt, tts_root = "/home/oumuamua/.local/share/tts", cache_path = "/tmp", device = "cuda"):
-        self.script = script
+    def __init__(self, model_list, system_prompt, tts_root = "/home/oumuamua/.local/share/tts", cache_path = "/tmp", device = "cuda"):
+        self.model_list = model_list
         self.system_prompt = system_prompt
         self.tts_root      = Path(tts_root)
         self.cache_path    = cache_path
         self.device = device
-        self.tts    = None
+        self.tts    = {}
         self.vocoder_model = "vocoder_models--en--ljspeech--multiband-melgan"
-        self.loaded_model  = None
         self.desired_model = None
-        self.script_line   = None
+        self.model_list_line   = None
 
-        self.reset(self.script)
+        self.reset(self.model_list)
 
         self.file_lock   = threading.Lock()
         self.ready_files = []
@@ -33,25 +32,27 @@ class TTSProcessor:
         self.processing_thread = threading.Thread(target=self.process_queue)
         self.processing_thread.start()
 
-    def reset(self, script):
-        assert(len(script) > 1)
+    def reset(self, model_list):
+        assert(len(model_list) > 1)
         self.history = []
-        self.script  = script.copy()
-        self.desired_model = "tts_models--en--ljspeech--glow-tts"
-        self.load_model(self.desired_model)
+        self.model_list  = model_list.copy()
+        self.load_model(self.model_list[0]["en"]["model"], self.model_list[0]["de"]["model"])
 
     def iterate(self):
-        self.script_line   = self.script.pop(0)
-        self.desired_model = self.script_line["model"]
-        if(len(self.script) == 0):
-            logger.warning("Finished script")
-            self.reset(self.script)
+        self.model_list_line   = self.model_list.pop(0)
+        self.desired_model = self.model_list_line["en"]["model"]
+        if(len(self.model_list) == 0):
+            logger.warning("Finished model_list")
+            self.reset(self.model_list)
 
 
-    def load_model(self, model):
+    def load_model(self, model_en, model_de):
         # Init TTS
-        self.tts = load_tts_model(model, self.vocoder_model, self.tts_root, self.device)
-        self.loaded_model = model
+        self.loaded_model = {}
+        self.tts["en"] = load_tts_model(model_en, None, self.tts_root, self.device)
+        self.loaded_model["en"] = model_en
+        self.tts["de"] = load_tts_model(model_de, None, self.tts_root, self.device)
+        self.loaded_model["de"] = model_de
 
     def add_message(self, message, role):
         self.file_lock.acquire()
@@ -70,9 +71,9 @@ class TTSProcessor:
     
     def process_queue(self):
         while self.running:
-            if(self.script_line):
-                if(self.script_line["model"] != self.loaded_model):
-                    self.load_model(self.script_line["model"] )
+            if(self.model_list_line):
+                if(self.model_list_line["en"]["model"] != self.loaded_model["en"]):
+                    self.load_model(self.model_list_line["en"]["model"], self.model_list_line["de"]["model"]  )
 
             try:
                 message = self.message_queue.get(timeout=0.2)
@@ -106,7 +107,7 @@ class TTSProcessor:
     def process_message(self, message):
 
         self.history += [{"role": "user", "content": f'{message}'}]
-        prompt = self.script_line["prompt"]
+        prompt = self.model_list_line["en"]["prompt"]
 
         return self.get_gpt_response(prompt)
 
@@ -133,7 +134,9 @@ class TTSProcessor:
         wav_file_path = Path(self.cache_path, f"{wav_uuid}.wav")
         logger.info(f"Processing message: '{response_message}' -> {wav_file_path}")
         # try:
-        self.tts.tts_to_file(
+
+        lang = "en"
+        self.tts[lang].tts_to_file(
             text=response_message, 
             file_path=Path(wav_file_path)
         )
