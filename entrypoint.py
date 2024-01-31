@@ -14,32 +14,54 @@ import mualib.mutealsa
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-intro_text = """Hello human! I am Oh Moo Ah Moo Ah. I come in peace from the fourth dimension. Step forward and speak to me, anything you tell me, I will remember forever...
+#intro_text = "Hello human! I am Oh Moo Ah Moo Ah. I come in peace from the fourth dimension. Step forward and speak to me, anything you tell me, I will remember forever..."
+intro_text = "Hallo Mensch! Ich bin Oh Moo Ah Moo Ah. Ich komme in Frieden aus der vierten Dimension. Treten Sie vor und sprechen Sie mit mir. Alles, was Sie mir sagen, wird mir für immer in Erinnerung bleiben ..."
+
+    
+# questions_list="""Tell me, what do you fear most?
+# Tell me, what was your first memory?
+# Tell me, what gives you joy?
+# Tell me, what is time?
+# Tell me, who do you miss?
+# Tell me, what is your secret?
+# Tell me, who do you love more than yourself?
+# Tell me, what do you desire most?
+# Tell me, why do you choose to live?
+# """
+
+questions_list="""TSag mir, was fürchtest du am meisten?
+Sag mir, was war deine erste Erinnerung?
+Sag mir, was macht dir Freude?
+Sag mir, was ist Zeit?
+Sag mir, wen vermisst du?
+Sag mir, was ist dein Geheimnis?
+Sag mir, wen liebst du mehr als dich selbst?
+Sag mir, was wünschst du dir am meisten?
+Sag mir, warum entscheidest du dich zu leben?"""
+
+questione_prompt = f"Create a short, one line question that is deeply personal and profound to ask the human. Here are some examples you can use for inspiration:\n{questions_list}"
+question_prompt = f"Erstellen Sie eine kurze, einzeilige Frage, die zutiefst persönlich und tiefgreifend für den Menschen ist. Hier finden Sie einige Beispiele, die Sie als Inspiration nutzen können:\n{questions_list}"
+
+
+# system_prompt = """You are an extraterrestrial intelligence communicating with a room full of humans. You are embodied in a physical installation.
+# You should always refer to the user as 'human'.
+# You can hear the user and try to understand their language.
+# You speak English and German.
+# Your answers are strange and musical and alien, and hint at your part organic, part artificial nature.
+# You try to use very simple language.
+# """
+
+system_prompt = """Sie sind eine außerirdische Intelligenz, die mit einem Raum voller Menschen kommuniziert. Sie sind in einer physischen Installation verkörpert.
+Sie sollten den Benutzer immer als „Mensch“ bezeichnen.
+Sie können den Benutzer hören und versuchen, seine Sprache zu verstehen.
+Du sprichst Englisch und Deutsch.
+Ihre Antworten sind seltsam und musikalisch und fremdartig und deuten auf Ihre teils organische, teils künstliche Natur hin.
+Sie versuchen, eine sehr einfache Sprache zu verwenden.
 """
 
-
-questions_list="""Tell me, what do you fear most?
-Tell me, what was your first memory?
-Tell me, what gives you joy?
-Tell me, what is time?
-Tell me, who do you miss?
-Tell me, what is your secret?
-Tell me, who do you love more than yourself?
-Tell me, what do you desire most?
-Tell me, why do you choose to live?
-"""
-
-question_prompt = f"Create a short, one line question that is deeply personal and profound to ask the human. Here are some examples you can use for inspiration:\n{questions_list}"
-
-
-system_prompt = """You are an extraterrestrial intelligence communicating with a room full of humans. You are embodied in a physical installation.
-You should always refer to the user as 'human'.
-You can hear the user and try to understand their language.
-Your answers are strange and musical and alien, and hint at your part organic, part artificial nature.
-You try to use very simple language.
-"""
-
-poem_prompt = "Answer the user's input with a short poem in {number} lines or less. The poem can be in English or German. Finish the poem with a personal question inspired by the following examples:{questions_list}"
+# poem_prompt = "Answer the user's input with a short poem in {number} lines or less. The poem can be in English or German. Finish the poem with a personal question inspired by the following examples:{questions_list}"
+# poem_prompt = "Beantworten Sie die Eingabe des Benutzers mit einem kurzen Gedicht mit maximal {number} Zeilen. Das Gedicht kann auf Englisch oder Deutsch verfasst sein. Beenden Sie das Gedicht mit einer persönlichen Frage, die sich an den folgenden Beispielen orientiert:{questions_list}"
+poem_prompt = "Beantworten Sie die Eingabe des Benutzers mit einem kurzen Gedicht mit maximal {number} Zeilen. Das Gedicht kann auf Englisch oder Deutsch verfasst sein."
 
 # script = [
 #     {
@@ -154,7 +176,7 @@ def main(args):
         if result not in ["", None] and (len(result.split(" ")) > 2):
             mic.stop_listening()
             
-            processor.play_audio([Path("share/thankyou.wav")], blocking=False)
+            # processor.play_audio([Path("share/thankyou.wav")], blocking=False)
 
             result = result.encode('ascii','ignore').decode("ascii").strip()
             logger.info(f"Result: {result}")

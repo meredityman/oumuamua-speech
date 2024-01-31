@@ -127,13 +127,12 @@ class TTSProcessor:
         logging.warn("GPT Timed out!")
         return "I am lost"
 
-    def speak(self, response_message):
+    def speak(self, response_message, lang = "de"):
         wav_uuid = uuid.uuid4()
         wav_file_path = Path(self.cache_path, f"{wav_uuid}.wav")
         logger.info(f"Processing message: '{response_message}' -> {wav_file_path}")
         # try:
 
-        lang = "en"
         self.tts[lang].tts_to_file(
             text=response_message, 
             file_path=Path(wav_file_path)
