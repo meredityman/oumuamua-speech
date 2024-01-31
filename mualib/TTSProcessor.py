@@ -143,7 +143,8 @@ class TTSProcessor:
                 logging.error(matches)
                 lang = default_lang
         else:
-            raise
+            logging.warn(f"No language found {resp}")
+            lang = default_lang
 
         return resp, lang
 
