@@ -39,6 +39,7 @@ build() {
 
 perturb() {
     docker run --rm --gpus=all --entrypoint=python3 \
+        --network=host \
         -v $PWD/share:/home/oumuamua/share \
         -v $HOME/.local/share/tts:/home/oumuamua/.local/share/tts \
         -it "oumuamua" perturb_model.py
@@ -56,6 +57,7 @@ make_audio() {
 dev() {
     setup_audio
     docker run --rm --gpus=all --entrypoint=bash \
+        -p 3721:3721/udp \
         --env PULSE_SERVER=unix:/tmp/pulseaudio.socket \
         --env PULSE_COOKIE=/tmp/pulseaudio.cookie \
         -v /tmp/pulseaudio.socket:/tmp/pulseaudio.socket \
@@ -94,6 +96,7 @@ whisper_test() {
 run() {
     setup_audio
     docker run --rm --gpus=all --device=/dev/snd \
+        -p 3721:3721/udp \
         -e PYTHONUNBUFFERED=1 \
         --env PULSE_SERVER=unix:/tmp/pulseaudio.socket \
         --env PULSE_COOKIE=/tmp/pulseaudio.cookie \

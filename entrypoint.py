@@ -7,126 +7,28 @@ from contextlib import contextmanager
 import torch
 import speech_recognition as sr
 
+from osc4py3.as_eventloop import *
+from osc4py3 import oscmethod as osm
 
 from mualib import WhisperMic, TTSProcessor
+from mualib.script import *
 import mualib.mutealsa
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-#intro_text = "Hello human! I am Oh Moo Ah Moo Ah. I come in peace from the fourth dimension. Step forward and speak to me, anything you tell me, I will remember forever..."
-intro_text = "Hallo Mensch! Ich bin Oh Moo Ah Moo Ah. Ich komme in Frieden aus der vierten Dimension. Treten Sie vor und sprechen Sie mit mir. Alles, was Sie mir sagen, wird mir für immer in Erinnerung bleiben ..."
-
-    
-# questions_list="""Tell me, what do you fear most?
-# Tell me, what was your first memory?
-# Tell me, what gives you joy?
-# Tell me, what is time?
-# Tell me, who do you miss?
-# Tell me, what is your secret?
-# Tell me, who do you love more than yourself?
-# Tell me, what do you desire most?
-# Tell me, why do you choose to live?
-# """
-
-questions_list="""TSag mir, was fürchtest du am meisten?
-Sag mir, was war deine erste Erinnerung?
-Sag mir, was macht dir Freude?
-Sag mir, was ist Zeit?
-Sag mir, wen vermisst du?
-Sag mir, was ist dein Geheimnis?
-Sag mir, wen liebst du mehr als dich selbst?
-Sag mir, was wünschst du dir am meisten?
-Sag mir, warum entscheidest du dich zu leben?"""
-
-questione_prompt = f"Create a short, one line question that is deeply personal and profound to ask the human. Here are some examples you can use for inspiration:\n{questions_list}"
-question_prompt = f"Erstellen Sie eine kurze, einzeilige Frage, die zutiefst persönlich und tiefgreifend für den Menschen ist. Hier finden Sie einige Beispiele, die Sie als Inspiration nutzen können:\n{questions_list}"
-
-
-# system_prompt = """You are an extraterrestrial intelligence communicating with a room full of humans. You are embodied in a physical installation.
-# You should always refer to the user as 'human'.
-# You can hear the user and try to understand their language.
-# You speak English and German.
-# Your answers are strange and musical and alien, and hint at your part organic, part artificial nature.
-# You try to use very simple language.
-# """
-
-system_prompt = """Sie sind eine außerirdische Intelligenz, die mit einem Raum voller Menschen kommuniziert. Sie sind in einer physischen Installation verkörpert.
-Sie sollten den Benutzer immer als „Mensch“ bezeichnen.
-Sie können den Benutzer hören und versuchen, seine Sprache zu verstehen.
-Du sprichst Englisch und Deutsch.
-Ihre Antworten sind seltsam und musikalisch und fremdartig und deuten auf Ihre teils organische, teils künstliche Natur hin.
-Sie versuchen, eine sehr einfache Sprache zu verwenden.
-"""
-
-# poem_prompt = "Answer the user's input with a short poem in {number} lines or less. The poem can be in English or German. Finish the poem with a personal question inspired by the following examples:{questions_list}"
-# poem_prompt = "Beantworten Sie die Eingabe des Benutzers mit einem kurzen Gedicht mit maximal {number} Zeilen. Das Gedicht kann auf Englisch oder Deutsch verfasst sein. Beenden Sie das Gedicht mit einer persönlichen Frage, die sich an den folgenden Beispielen orientiert:{questions_list}"
-poem_prompt = "Beantworten Sie die Eingabe des Benutzers mit einem kurzen Gedicht mit maximal {number} Zeilen. Das Gedicht kann auf Englisch oder Deutsch verfasst sein."
-
-# script = [
-#     {
-#         "prompt" : poem_prompt.format(number="eight"  , questions_list=questions_list),
-#         "model"  : "tts_models--de--thorsten--vits_glitch_0000"
-#     },
-#     {
-#         "prompt" : poem_prompt.format(number="six", questions_list=questions_list),
-#         "model"  : "tts_models--de--thorsten--vits_glitch_0001"
-#     },
-#     {
-#         "prompt" : poem_prompt.format(number="ten"  , questions_list=questions_list),
-#         "model"  : "tts_models--de--thorsten--vits_glitch_0002"
-#     },
-#     {
-#         "prompt" : poem_prompt.format(number="four", questions_list=questions_list),
-#         "model"  : "tts_models--de--thorsten--vits_glitch_0003"
-#     }
-# ]
-
-script = [
-    {
-        "en": {
-            "prompt" : poem_prompt.format(number="eight"  , questions_list=questions_list),
-            "model"  : "tts_models--en--ljspeech--vits_glitch_0000"
-        },
-        "de": {
-            "model"  : "tts_models--de--thorsten--vits_glitch_0000"
-        },
-    },
-    {
-        "en": {
-            "prompt" : poem_prompt.format(number="six", questions_list=questions_list),
-            "model"  : "tts_models--en--ljspeech--vits_glitch_0001"
-        },
-        "de": {
-            "model"  : "tts_models--de--thorsten--vits_glitch_0001"
-        },
-    },
-    {
-        "en": {
-            "prompt" : poem_prompt.format(number="ten"  , questions_list=questions_list),
-            "model"  : "tts_models--en--ljspeech--vits_glitch_0002"
-        },
-        "de": {
-            "model"  : "tts_models--de--thorsten--vits_glitch_0002"
-        },
-    },
-    {
-        "en": {
-            "prompt" : poem_prompt.format(number="four", questions_list=questions_list),
-            "model"  : "tts_models--en--ljspeech--vits_glitch_0003"
-        },
-        "de": {
-            "model"  : "tts_models--de--thorsten--vits_glitch_0003"
-        },
-    }
-]
-
-
-
 def main(args):
     logger.info(f"Entering Main...")
     # logger.info(subprocess.call("nvidia-smi"))
     # logging.info(subprocess.call("pactl info"))
+
+    def debug_osc(address, *args):
+        logging.info(f"OSC Recived: {address}, {args}")
+
+    osc_startup()
+    osc_udp_server("0.0.0.0", 3721, "commandserver")
+    osc_method("/*", debug_osc, argscheme=osm.OSCARG_ADDRESS + osm.OSCARG_DATAUNPACK)
+
 
     share_path = Path("share")
 
@@ -145,31 +47,51 @@ def main(args):
     processor = TTSProcessor(script, system_prompt, cache_path = share_path)
     processor.start()
 
-    processor.add_message("System started.", "assistant")
+    processor.add_message("System started.", "assistant", "en")
     processor.play_all_audio()
 
     mic.start_listening()
 
     last_interation  = - args.interation_timeout
     last_invite_time = - args.invite_interval
+    force_intro = False
+
+    def on_note(address, note):
+        nonlocal force_intro
+        logging.info(f"OSC Recived: {address}, {args}")
+        force_intro = True
+
+    osc_method("/Note1", on_note, argscheme=osm.OSCARG_ADDRESS + osm.OSCARG_DATAUNPACK)
+
     while(True):
         time_now = time.time()
-        if(     ((time_now - last_interation) > 30 and (time_now - last_invite_time) > args.invite_interval) or 
-                ((time_now - last_invite_time) > 2 * args.invite_interval)
-            ):
+        osc_process()
+
+        def trigger_intro():
+            nonlocal force_intro
+            timeout = ((time_now - last_interation) > 30 and (time_now - last_invite_time) > args.invite_interval) or \
+                      ((time_now - last_invite_time) > 2 * args.invite_interval)
+            
+            return timeout or force_intro
+
+
+        # Play invitation
+        if( trigger_intro()):
             mic.stop_listening()
             processor.reset()
-            processor.add_message(intro_text, "assistant")
+            processor.add_message(intro_text[args.lang], "assistant", args.lang)
 
             question = processor.get_gpt_response(question_prompt)
-            processor.add_message(question, "assistant")
+            question, lang = TTSProcessor.get_lang(question, args.lang)
+            processor.add_message(question, "assistant", lang=lang)
             processor.play_all_audio()         
             processor.iterate()
             last_invite_time = time.time()
+            force_intro = False
 
             mic.start_listening()
 
-
+        # Listen
         logger.info("Listening...")
         result = mic.listen(timeout=args.mic_timeout)
 
@@ -181,7 +103,7 @@ def main(args):
             result = result.encode('ascii','ignore').decode("ascii").strip()
             logger.info(f"Result: {result}")
 
-            processor.add_message(result, "user")            
+            processor.add_message(result, "user", None)            
             processor.play_all_audio()          
             processor.iterate()
             last_interation = time.time()
@@ -197,6 +119,7 @@ if __name__ == "__main__":
     parser.add_argument('--invite_interval'   , default=50 , type=int)
     parser.add_argument('--interation_timeout', default=40 , type=int)
     parser.add_argument('--mic_timeout'       , default=1.0, type=float)
+    parser.add_argument('--lang'              , default="de", choices=["en", "de"])
 
     args = parser.parse_args()
 
