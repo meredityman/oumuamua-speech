@@ -44,7 +44,9 @@ question_prompt = {
 }
 
 
-poem_prompt = "Answer the user's input with a short poem in {number} lines or less. Do not write more than {number} line. The poem can be in [English] or [German]. Finish the poem with a personal question inspired by the following examples:{questions_list}"
+# poem_prompt = "Answer the user's input with a short poem in {number} lines or less. Do not write more than {number} line. The poem can be in [English] or [German]. Finish the poem with a personal question inspired by the following examples:{questions_list}"
+
+poem_prompt = "Answer the user's input with a short poem in {number} lines or less. If the user speaks German reply in German only. If the user speaks English, reply in English only. Write a maximum of {number} lines"
 
 
 script = [
@@ -86,6 +88,16 @@ script = [
         "de": {
             "prompt" : poem_prompt.format(number="four"  , questions_list=questions_list["de"]),
             "model"  : "tts_models--de--thorsten--vits_glitch_0003"
+        },
+    },
+    {
+        "en": {
+            "prompt" : poem_prompt.format(number="two", questions_list=questions_list["en"]),
+            "model"  : "tts_models--en--ljspeech--vits_glitch_0004"
+        },
+        "de": {
+            "prompt" : poem_prompt.format(number="two"  , questions_list=questions_list["de"]),
+            "model"  : "tts_models--de--thorsten--vits_glitch_0004"
         },
     }
 ]
