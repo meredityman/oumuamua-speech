@@ -82,13 +82,11 @@ class TTSProcessor:
             files, self.ready_files = self.ready_files, []
             self.file_lock.release()
             self.play_audio(files)
-    
 
-    
     def process_queue(self):
         while self.running:
             try:
-                message = self.message_queue.get(timeout=0.2)
+                message = self.message_queue.get(timeout=0.1)
                 if(message):
                     (response_message, lang) = self.process_message(message)
                     self.response_queue.put_nowait((response_message, lang))
@@ -97,10 +95,9 @@ class TTSProcessor:
                 pass
 
             try:
-                response_message, lang = self.response_queue.get(timeout=0.2)
+                response_message, lang = self.response_queue.get(timeout=0.1)
                 if(response_message):
                     self.speak(response_message, lang)
-                    self.file_lock.release()
             except queue.Empty:
                 # logging.warn("Response timeout")
                 pass
@@ -117,13 +114,10 @@ class TTSProcessor:
         logger.info("Finished Speaking")
             
     def process_message(self, message):
-
         self.history += [{"role": "user", "content": f'{message}'}]
         prompt = self.model_list_line[self.default_lang ]["prompt"]
         resp = self.get_gpt_response(prompt)
-
         resp, lang = TTSProcessor.get_lang(resp, self.default_lang )
-
         return resp, lang
     
 
@@ -154,11 +148,18 @@ class TTSProcessor:
                 messages = [{"role": "system", "content": self.system_prompt}]
                 messages += [ m for m in self.history]
                 messages += [ {"role": "system", "content": f'{prompt}'}]
+
+                logging.info(f"GPT Complete: {messages}")
                 response = openai.ChatCompletion.create(
                     model="gpt-3.5-turbo",
-                    messages=messages)
-
-                return response.choices[0].message.content
+                    messages=messages,
+                    temperature=0.7,
+                    frequency_penalty=1.0,
+                    max_tokens=150
+                )
+                resp = response.choices[0].message.content
+                logging.info(f"Reponse: {resp}")
+                return resp
             except Exception as e:
                 logging.warn(e)
                 time.sleep(1.0)
@@ -170,16 +171,18 @@ class TTSProcessor:
         wav_uuid = uuid.uuid4()
         wav_file_path = Path(self.cache_path, f"{wav_uuid}.wav")
         logger.info(f"Processing message: '{response_message}' -> {wav_file_path}")
-        # try:
-        model = self.model_list_line[lang]["model"]
-        self.tts[model].tts_to_file(
-            text=response_message, 
-            file_path=Path(wav_file_path)
-        )
-        logger.info(f"Saved: {wav_file_path} using model: {model}")
-        self.ready_files.append(wav_file_path)
-        # except Exception as e:
-        #     logger.error(e)
+        try:
+            model = self.model_list_line[lang]["model"]
+            self.tts[model].tts_to_file(
+                text=response_message, 
+                file_path=Path(wav_file_path)
+            )
+            logger.info(f"Saved: {wav_file_path} using model: {model}")
+            self.ready_files.append(wav_file_path)
+        except Exception as e:
+            logger.error(e)
+        
+        self.file_lock.release()
 
     def stop(self):
         self.running = False

@@ -53,15 +53,19 @@ def main(args):
         torch.save(perturb_dict, Path(output_path, "model_file.pth"))
         shutil.copy(orig_config, Path(output_path, "config.json"))
 
+        print(output_path)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Load a PyTorch model, perturb its weights, and save the perturbed model.')
-    parser.add_argument('--input_path', default=".local/share/tts/tts_models--en--ljspeech--vits",
+    parser.add_argument('--input_path',
         type=str, help='Path to the input model checkpoint file (.pth).')
-    parser.add_argument('--output_path', default=".local/share/tts", 
+    parser.add_argument('--output_path', default="/home/oumuamua/.local/share/tts", 
         type=str, help='Path to save the perturbed model checkpoint.')
     
-    parser.add_argument('--perturbation_scale', type=float, default=0.15, help='Magnitude of random perturbation for weights.')
-    parser.add_argument('--perturbation_prob', type=float, default=0.15, help='Probability of perturbing each weight.')
+    parser.add_argument('--perturbation_scale', type=float, default=0.17, help='Magnitude of random perturbation for weights.')
+    parser.add_argument('--perturbation_prob', type=float, default=0.15
+    
+    , help='Probability of perturbing each weight.')
 
     args = parser.parse_args()
     main(args)

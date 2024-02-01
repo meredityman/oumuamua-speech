@@ -59,7 +59,8 @@ def main(args):
     def on_note(address, note):
         nonlocal force_intro
         logging.info(f"OSC Recived: {address}, {args}")
-        force_intro = True
+        if(note == 60):
+            force_intro = True
 
     osc_method("/Note1", on_note, argscheme=osm.OSCARG_ADDRESS + osm.OSCARG_DATAUNPACK)
 
@@ -77,6 +78,7 @@ def main(args):
 
         # Play invitation
         if( trigger_intro()):
+            logging.info("***Play introduction***")
             mic.stop_listening()
             processor.reset()
             processor.add_message(intro_text[args.lang], "assistant", args.lang)
@@ -89,6 +91,7 @@ def main(args):
             last_invite_time = time.time()
             force_intro = False
 
+            logging.info("***End introduction***")
             mic.start_listening()
 
         # Listen

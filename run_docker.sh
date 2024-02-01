@@ -42,7 +42,7 @@ perturb() {
         --network=host \
         -v $PWD/share:/home/oumuamua/share \
         -v $HOME/.local/share/tts:/home/oumuamua/.local/share/tts \
-        -it "oumuamua" perturb_model.py
+        -it "oumuamua" perturb_model.py "$@"
 }
 
 make_audio() {
@@ -114,7 +114,7 @@ CWD=$(basename "$PWD")
 case ${1:-build} in
     build) build ;;
     dev) dev ;;
-    perturb) perturb ;;
+    perturb) shift; perturb "$@";;
     make_audio) shift; make_audio "$@";;
     speaker_test) speaker_test ;;
     whisper_test) whisper_test ;;

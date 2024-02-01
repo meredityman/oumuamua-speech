@@ -25,21 +25,20 @@ def main():
     )
     parser.add_argument(
         "--model_name", type=str,
-        default="tts_models--en--ljspeech--glow-tts_glitch_0002",
         help="Model",
     ) 
 
     args = parser.parse_args()
     print(args)
 
-    vocoder_model = "vocoder_models--en--ljspeech--multiband-melgan"
+    # vocoder_model = "vocoder_models--en--ljspeech--multiband-melgan"
     tts_root      = "/home/oumuamua/.local/share/tts"
     share_path = Path("share")
 
     assert(torch.cuda.is_available())
     device = "cuda"
 
-    tts = load_tts_model(args.model_name, vocoder_model, tts_root, device)
+    tts = load_tts_model(args.model_name, None, tts_root, device)
 
     if(args.name):
         wav_file_path = Path(share_path, f"{args.name}.wav")
