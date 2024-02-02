@@ -1,6 +1,7 @@
 openai.key
 
 img.tar
-share/*
+share/*.*
+share/logs
 
 models/*

@@ -2,10 +2,13 @@ import logging, time, queue, threading, uuid, subprocess, re
 from pathlib import Path
 import openai
 from mualib.TTSUtils import load_tts_model
+import uuid
 
 logger = logging.getLogger()
 
 openai.api_key = open("/home/oumuamua/openai.key").read()
+
+
 
 class TTSProcessor:
     def __init__(
@@ -15,6 +18,7 @@ class TTSProcessor:
             default_lang = "en",
             tts_root     = "/home/oumuamua/.local/share/tts", 
             cache_path   = "/tmp", 
+            log_path     = "share/logs", 
             device       = "cuda"
             ):
         
@@ -24,6 +28,11 @@ class TTSProcessor:
         self.tts_root        = Path(tts_root)
         self.cache_path      = cache_path
         self.device          = device
+        self.uuid            = None
+        self.history         = []
+
+        self.log_path        = log_path
+        Path(self.log_path).mkdir(exist_ok=True)
 
 
         self.tts    = {}
@@ -45,9 +54,16 @@ class TTSProcessor:
         self.processing_thread.start()
 
     def reset(self):
+        if(len(self.history)):
+            log_file_path = Path(self.log_path, f"{self.uuid}.txt")
+            with open(log_file_path , "w") as f:
+                f.writelines([f"{l['role']}: {l['content']}" for l in self.history])
+
+
         self.history = []
         self.model_list = self.orig_model_list.copy()
         self.model_list_line   = self.model_list[0]
+        self.uuid = f"{uuid.uuid4()}"
 
     def iterate(self):
         self.model_list_line   = self.model_list.pop(0)
@@ -122,20 +138,31 @@ class TTSProcessor:
     
 
     def get_lang(resp, default_lang):
-        pattern = r'\b(?:\[)?(English|German)\]?\b'
-        matches = re.findall(pattern, resp, re.IGNORECASE)
+        pattern = r'\s*\[?(English|German)\]?\s*'
+        matches = re.split(pattern, resp, re.IGNORECASE)
         if(len(matches)):
-            logging.info(f"Matches: {matches}")
-            pattern = r'\s*\[?(English|German)\]?\s*'  
-            if(matches[0] == "English"):
-                lang = "en"   
-                resp = re.sub(pattern, "", resp, flags=re.IGNORECASE).strip()
-            elif(matches[0] == "German"):
-                lang = "de"   
-                resp = re.sub(pattern, "", resp, flags=re.IGNORECASE).strip()
-            else:
-                logging.error(matches)
-                lang = default_lang
+            lang = None
+            for m in matches:
+
+                if(lang is not None):
+                    resp = m.strip()
+                    break
+
+                logging.info(f"Matches: {matches}")
+                pattern = r'\s*\[?(English|German)\]?\s*'  
+                if(m == "English"):
+                    lang = "en"
+                    continue
+                    # resp = re.sub(pattern, "", resp, flags=re.IGNORECASE).strip()
+                    # resp = matches[1].strip()
+                elif(m == "German"):
+                    lang = "de"   
+                    # resp = re.sub(pattern, "", resp, flags=re.IGNORECASE).strip()
+                    # resp = matches[1].strip()
+                    continue
+                # else:
+                #     logging.error(matches)
+                #     lang = default_lang
         else:
             logging.warn(f"No language found {resp}")
             lang = default_lang

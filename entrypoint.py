@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import logging, time
+import logging, time, random
 from pathlib import Path
 import argparse
 from contextlib import contextmanager
@@ -31,6 +31,14 @@ def main(args):
 
 
     share_path = Path("share")
+    bleeps = [
+        Path(share_path, "resources", 'AI Voice SoundFX 01.wav'),
+        Path(share_path, "resources", 'AI Voice SoundFX 02.wav'),
+        Path(share_path, "resources", 'AI Voice SoundFX 03.wav'),
+        Path(share_path, "resources", 'AI Voice SoundFX 04.wav'),
+        Path(share_path, "resources", 'AI Voice SoundFX 05.wav')
+    ]
+
 
     assert(torch.cuda.is_available())
     device = "cuda"
@@ -73,7 +81,8 @@ def main(args):
             timeout = ((time_now - last_interation) > 30 and (time_now - last_invite_time) > args.invite_interval) or \
                       ((time_now - last_invite_time) > 2 * args.invite_interval)
             
-            return timeout or force_intro
+            # return timeout or force_intro
+            return force_intro
 
 
         # Play invitation
@@ -101,7 +110,7 @@ def main(args):
         if result not in ["", None] and (len(result.split(" ")) > 2):
             mic.stop_listening()
             
-            # processor.play_audio([Path("share/thankyou.wav")], blocking=False)
+            processor.play_audio([random.choice(bleeps)], blocking=False)
 
             result = result.encode('ascii','ignore').decode("ascii").strip()
             logger.info(f"Result: {result}")
